@@ -1,1 +1,0 @@
-export { MicrosoftSignInButton } from './MicrosoftSignInButton';
