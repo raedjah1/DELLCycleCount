@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Warehouse Cycle Count Module
 
-## Getting Started
+Professional warehouse cycle count management system built with Next.js 14, TypeScript, and Supabase.
 
-First, run the development server:
+## 🚀 Quick Start
 
+### Prerequisites
+- Node.js 18+
+- npm or pnpm
+- Supabase account
+- Vercel account (for deployment)
+
+### Local Development
+
+1. **Install dependencies**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Set up environment variables**
+Create `.env.local` file:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Run development server**
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. **Open browser**
+Navigate to [http://localhost:3000](http://localhost:3000)
 
-## Learn More
+## 📦 Deployment
 
-To learn more about Next.js, take a look at the following resources:
+### Deploy to Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Push to GitHub**
+```bash
+git add .
+git commit -m "Initial commit"
+git remote add origin your-github-repo-url
+git push -u origin main
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Deploy to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Import Project"
+   - Connect your GitHub repository
+   - Add environment variables:
+     - `NEXT_PUBLIC_SUPABASE_URL`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Click "Deploy"
 
-## Deploy on Vercel
+3. **Your app will be live!**
+   - Vercel will provide a URL like: `your-app.vercel.app`
+   - Every git push auto-deploys
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🗄️ Database Setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Go to Supabase Dashboard → SQL Editor
+2. Run `supabase/schema.sql` to create all tables
+3. Run `supabase/fix-rls-policies.sql` to fix RLS policies
+
+## 📁 Project Structure
+
+```
+cycle-count-app/
+├── app/                    # Next.js App Router pages
+│   ├── admin/             # Admin screens
+│   ├── operator/           # Operator screens
+│   ├── lead/              # Lead screens
+│   ├── manager/            # Manager screens
+│   └── auth/               # Authentication
+├── components/             # React components
+│   ├── widgets/           # Modular widgets
+│   ├── forms/             # Form components
+│   └── layouts/           # Layout components
+├── lib/                    # Utilities
+│   ├── supabase/          # Supabase clients
+│   └── utils/             # Helper functions
+└── supabase/              # Database schema
+    └── schema.sql         # Complete database schema
+```
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **State Management**: Zustand + TanStack Query
+- **Forms**: React Hook Form + Zod
+- **Deployment**: Vercel
+
+## 📝 Features
+
+- ✅ Complete warehouse cycle count workflows
+- ✅ Role-based access control
+- ✅ Excel import for master data
+- ✅ Transaction-aware variance review
+- ✅ Guided counting workflows
+- ✅ Professional, responsive UI
+
+## 🔒 Security
+
+- Row Level Security (RLS) enabled
+- Environment variables for sensitive data
+- Authentication required for all routes
+
+## 📄 License
+
+Private - Internal use only
