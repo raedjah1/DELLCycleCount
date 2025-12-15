@@ -60,22 +60,6 @@ export default function OnHandImportPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Page Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">OnHand Import</h1>
-              <p className="text-gray-600 mt-1">
-                Import current OnHand inventory snapshot from Excel
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-              <span>Admin Only</span>
-            </div>
-          </div>
-        </div>
-
         {/* Upload Section */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Excel File Upload</h2>
