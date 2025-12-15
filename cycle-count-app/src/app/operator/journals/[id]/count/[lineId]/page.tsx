@@ -23,7 +23,7 @@ export default function CountScreenPage() {
     partNumber: 'PART-001',
     description: 'Laptop Component',
     expectedQty: 10,
-    warehouseType: 'Rawgoods' as const,
+    warehouseType: 'Rawgoods' as 'Rawgoods' | 'Finishedgoods' | 'Production',
     serialRequired: true,
     expectedSerialCount: 10
   });

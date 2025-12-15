@@ -28,7 +28,7 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
         </svg>
       ),
       color: 'blue',
-      priority: 'high'
+      priority: 'high' as const
     },
     {
       title: 'Transaction Import',
@@ -40,9 +40,9 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
         </svg>
       ),
       color: 'indigo',
-      priority: 'high'
+      priority: 'high' as const
     }
-  ];
+  ] as const;
 
   const secondaryActions = [
     {

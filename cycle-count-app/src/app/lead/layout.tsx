@@ -2,20 +2,45 @@
 // LEAD LAYOUT - Shared layout for lead routes
 // ============================================================================
 
-import { Navbar } from '@/components/layouts/Navbar';
-import { Sidebar } from '@/components/layouts/Sidebar';
+'use client';
 
-export default function LeadLayout({
-  children,
-}: {
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { Navbar, Sidebar } from '@/components/layouts';
+
+interface LeadLayoutProps {
   children: React.ReactNode;
-}) {
+}
+
+export default function LeadLayout({ children }: LeadLayoutProps) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const pathname = usePathname();
+
+  // Mock user data - in production, this would come from auth context
+  const mockUserEmail = 'raed.jah@reconext.com';
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1">{children}</main>
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar
+        userRole="lead"
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Navbar */}
+        <Navbar
+          userEmail={mockUserEmail}
+          userRole="lead"
+          currentPath={pathname}
+        />
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
       </div>
     </div>
   );

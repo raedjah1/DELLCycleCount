@@ -145,7 +145,8 @@ export async function parseOnHandExcel(file: File): Promise<OnHandImportResult> 
     };
 
   } catch (error) {
-    throw new Error(`Excel parsing failed: ${error.message}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Excel parsing failed: ${message}`);
   }
 }
 
@@ -311,7 +312,8 @@ export async function parseTransactionExcel(file: File): Promise<TransactionImpo
     };
 
   } catch (error) {
-    throw new Error(`Excel parsing failed: ${error.message}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Excel parsing failed: ${message}`);
   }
 }
 
