@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AddUserForm, EditUserForm, UserFormData } from '@/components/forms';
 
 export default function UserManagementPage() {
   const [activeTab, setActiveTab] = useState<'manage' | 'roles' | 'verified'>('manage');
@@ -22,7 +23,7 @@ export default function UserManagementPage() {
       isVerifiedCounter: true,
       isActive: true,
       shift: 'Day',
-      zones: ['All'],
+      zones: ['ZONE-A1', 'ZONE-A2', 'ZONE-A3', 'ZONE-B1', 'ZONE-B2', 'ZONE-B3', 'ZONE-C1', 'ZONE-C2', 'ZONE-C3'],
       lastLogin: '2024-12-15T10:30:00Z',
       createdAt: '2024-01-15T08:00:00Z'
     },
@@ -154,11 +155,53 @@ export default function UserManagementPage() {
           {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'manage' && (
-              <UserManagementTab 
-                users={users} 
-                onAddUser={() => setShowAddUserModal(true)}
-                onEditUser={setSelectedUser}
-              />
+              <>
+                {/* Add User Form - Inline */}
+                {showAddUserModal && (
+                  <div className="mb-8">
+                    <AddUserForm 
+                      onClose={() => setShowAddUserModal(false)}
+                      onSave={async (userData: UserFormData) => {
+                        // TODO: Add user logic - save to backend
+                        console.log('Add user:', userData);
+                        // Simulate API call
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        setShowAddUserModal(false);
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Edit User Form - Inline */}
+                {selectedUser && (
+                  <div className="mb-8">
+                    <EditUserForm
+                      user={selectedUser}
+                      onClose={() => setSelectedUser(null)}
+                      onSave={async (userData) => {
+                        // TODO: Update user logic - save to backend
+                        console.log('Update user:', userData);
+                        // Simulate API call
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        setSelectedUser(null);
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* User Management Tab - Always visible */}
+                <UserManagementTab 
+                  users={users} 
+                  onAddUser={() => {
+                    setSelectedUser(null); // Close edit form if open
+                    setShowAddUserModal(true);
+                  }}
+                  onEditUser={(user) => {
+                    setShowAddUserModal(false); // Close add form if open
+                    setSelectedUser(user);
+                  }}
+                />
+              </>
             )}
             {activeTab === 'roles' && (
               <RolePermissionsTab />
@@ -171,31 +214,6 @@ export default function UserManagementPage() {
             )}
           </div>
         </div>
-
-        {/* Add User Modal */}
-        {showAddUserModal && (
-          <AddUserModal 
-            onClose={() => setShowAddUserModal(false)}
-            onSave={(userData) => {
-              // TODO: Add user logic
-              console.log('Add user:', userData);
-              setShowAddUserModal(false);
-            }}
-          />
-        )}
-
-        {/* Edit User Modal */}
-        {selectedUser && (
-          <EditUserModal
-            user={selectedUser}
-            onClose={() => setSelectedUser(null)}
-            onSave={(userData) => {
-              // TODO: Update user logic
-              console.log('Update user:', userData);
-              setSelectedUser(null);
-            }}
-          />
-        )}
       </div>
     </div>
   );
@@ -605,188 +623,6 @@ function VerifiedCounterTab({ users, requests }: VerifiedCounterTabProps) {
   );
 }
 
-// ============================================================================
-// MODALS
-// ============================================================================
-
-interface AddUserModalProps {
-  onClose: () => void;
-  onSave: (userData: any) => void;
-}
-
-function AddUserModal({ onClose, onSave }: AddUserModalProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'Operator',
-    shift: 'Day',
-    zones: [] as string[]
-  });
-
-  const roles = ['Admin', 'IC_Manager', 'Warehouse_Manager', 'Warehouse_Supervisor', 'Lead', 'Operator', 'Viewer'];
-  const shifts = ['Day', 'Night', 'Swing'];
-  const availableZones = ['ZONE-A1', 'ZONE-A2', 'ZONE-B1', 'ZONE-B2', 'ZONE-C1', 'ZONE-C2'];
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New User</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({...formData, role: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {roles.map(role => (
-                <option key={role} value={role}>{formatRole(role)}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
-            <select
-              value={formData.shift}
-              onChange={(e) => setFormData({...formData, shift: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {shifts.map(shift => (
-                <option key={shift} value={shift}>{shift}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <div className="flex justify-end space-x-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave(formData)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
-            Add User
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface EditUserModalProps {
-  user: User;
-  onClose: () => void;
-  onSave: (userData: any) => void;
-}
-
-function EditUserModal({ user, onClose, onSave }: EditUserModalProps) {
-  const [formData, setFormData] = useState({
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    shift: user.shift,
-    zones: user.zones,
-    isActive: user.isActive
-  });
-
-  const roles = ['Admin', 'IC_Manager', 'Warehouse_Manager', 'Warehouse_Supervisor', 'Lead', 'Operator', 'Viewer'];
-  const shifts = ['Day', 'Night', 'Swing'];
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit User</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({...formData, role: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {roles.map(role => (
-                <option key={role} value={role}>{formatRole(role)}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={formData.isActive}
-              onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
-              className="mr-2"
-            />
-            <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Active User</label>
-          </div>
-        </div>
-        
-        <div className="flex justify-end space-x-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave(formData)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
-            Save Changes
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ============================================================================
 // TYPES AND UTILITY FUNCTIONS

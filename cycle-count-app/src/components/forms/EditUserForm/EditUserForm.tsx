@@ -1,27 +1,27 @@
 // ============================================================================
-// ADD USER FORM - Professional Full-Screen User Creation Form
+// EDIT USER FORM - Professional Full-Screen User Editing Form
 // ============================================================================
-// Location: /components/forms/AddUserForm/
-// Purpose: Beautiful, modern form for adding new users to the system
+// Location: /components/forms/EditUserForm/
+// Purpose: Beautiful, modern form for editing existing users
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { UserFormData } from '../AddUserForm/AddUserForm';
 
-interface AddUserFormProps {
+interface EditUserFormProps {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    shift: string;
+    zones: string[];
+    isActive: boolean;
+    isVerifiedCounter: boolean;
+  };
   onClose: () => void;
-  onSave: (userData: UserFormData) => Promise<void>;
-}
-
-export interface UserFormData {
-  name: string;
-  email: string;
-  role: string;
-  shift: string;
-  zones: string[];
-  isActive: boolean;
-  isVerifiedCounter: boolean;
+  onSave: (userData: UserFormData & { id: string }) => Promise<void>;
 }
 
 const ROLES = [
@@ -47,19 +47,19 @@ const AVAILABLE_ZONES = [
   'All Zones'
 ];
 
-export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
-  const router = useRouter();
+export function EditUserForm({ user, onClose, onSave }: EditUserFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const [formData, setFormData] = useState<UserFormData>({
-    name: '',
-    email: '',
-    role: 'Operator',
-    shift: 'Day',
-    zones: [],
-    isActive: true,
-    isVerifiedCounter: false
+  const [formData, setFormData] = useState<UserFormData & { id: string }>({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    shift: user.shift,
+    zones: user.zones,
+    isActive: user.isActive,
+    isVerifiedCounter: user.isVerifiedCounter
   });
 
   const validateForm = (): boolean => {
@@ -103,7 +103,7 @@ export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
       await onSave(formData);
       onClose();
     } catch (error: any) {
-      setErrors({ form: error.message || 'Failed to create user' });
+      setErrors({ form: error.message || 'Failed to update user' });
     } finally {
       setIsSubmitting(false);
     }
@@ -131,8 +131,8 @@ export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
       <div className="border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Add New User</h2>
-            <p className="text-sm text-gray-500 mt-1">Create a new user account for the warehouse system</p>
+            <h2 className="text-2xl font-bold text-gray-900">Edit User</h2>
+            <p className="text-sm text-gray-500 mt-1">Update user account information and permissions</p>
           </div>
           <button
             onClick={onClose}
@@ -188,20 +188,10 @@ export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => {
-                      setFormData({...formData, email: e.target.value});
-                      if (errors.email) setErrors({...errors, email: ''});
-                    }}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors text-gray-900 placeholder:text-gray-400 ${
-                      errors.email 
-                        ? 'border-red-300 focus:ring-red-500' 
-                        : 'border-gray-300 focus:ring-blue-500'
-                    }`}
-                    placeholder="john.doe@reconext.com"
+                    disabled
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                   />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                  )}
+                  <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
                 </div>
               </div>
             </div>
@@ -351,10 +341,10 @@ export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
                     <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
                   </svg>
-                  Creating User...
+                  Saving Changes...
                 </span>
               ) : (
-                'Create User'
+                'Save Changes'
               )}
             </button>
           </div>
