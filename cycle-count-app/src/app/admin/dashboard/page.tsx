@@ -76,25 +76,25 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Dashboard Content - Now starts higher */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-8">
-        <div className="space-y-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 pt-4 sm:pt-6 pb-6 sm:pb-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* System Metrics Widget */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
             <SystemMetricsWidget metrics={systemMetrics} />
           </div>
 
           {/* Two Column Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Quick Actions - Takes up 2 columns */}
             <div className="xl:col-span-2">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
                 <QuickActionsWidget alertCounts={alertCounts} />
               </div>
             </div>
 
             {/* System Status - Takes up 1 column */}
             <div className="xl:col-span-1">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
                 <SystemStatusWidget 
                   recentActivity={recentActivity}
                 />

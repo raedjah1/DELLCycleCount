@@ -106,15 +106,15 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Primary Actions Section */}
       <div>
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Data Management</h2>
-          <p className="text-sm text-gray-500 mt-1">Import and process warehouse data</p>
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Data Management</h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Import and process warehouse data</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {primaryActions.map((action, index) => (
             <PrimaryActionCard key={index} {...action} />
           ))}
@@ -123,12 +123,12 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
 
       {/* Secondary Actions Section */}
       <div>
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">System Management</h2>
-          <p className="text-sm text-gray-500 mt-1">Configure and maintain system components</p>
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">System Management</h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Configure and maintain system components</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {secondaryActions.map((action, index) => (
             <SecondaryActionCard key={index} {...action} />
           ))}
@@ -165,20 +165,20 @@ function PrimaryActionCard({ title, description, href, icon, color, priority = '
       className="group block"
     >
       <div className={`
-        relative overflow-hidden rounded-2xl bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses] || colorClasses.blue}
-        p-8 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl
+        relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses] || colorClasses.blue}
+        p-5 sm:p-8 text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl
         ${priority === 'high' ? 'ring-2 ring-white/20' : ''}
       `}>
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-black/10"></div>
-        <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-        <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute -top-4 -right-4 w-20 h-20 sm:w-24 sm:h-24 bg-white/10 rounded-full blur-2xl"></div>
+        <div className="absolute -bottom-8 -left-8 w-24 h-24 sm:w-32 sm:h-32 bg-white/5 rounded-full blur-3xl"></div>
 
         {/* Content */}
         <div className="relative">
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm">
-              {icon}
+          <div className="flex items-start justify-between mb-3 sm:mb-4">
+            <div className="p-2 sm:p-3 bg-white/10 rounded-lg sm:rounded-xl backdrop-blur-sm">
+              <div className="w-5 h-5 sm:w-6 sm:h-6">{icon}</div>
             </div>
             {priority === 'high' && (
               <span className="px-2 py-1 text-xs font-medium bg-white/20 rounded-full backdrop-blur-sm">
@@ -187,17 +187,17 @@ function PrimaryActionCard({ title, description, href, icon, color, priority = '
             )}
           </div>
           
-          <h3 className="text-xl font-bold mb-2 group-hover:text-white/90">
+          <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:text-white/90">
             {title}
           </h3>
-          <p className="text-white/80 text-sm leading-relaxed">
+          <p className="text-white/80 text-xs sm:text-sm leading-relaxed">
             {description}
           </p>
 
           {/* Arrow Icon */}
-          <div className="mt-4 flex items-center text-white/60 group-hover:text-white/80 transition-colors">
-            <span className="text-sm font-medium mr-2">Get Started</span>
-            <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mt-3 sm:mt-4 flex items-center text-white/60 group-hover:text-white/80 transition-colors">
+            <span className="text-xs sm:text-sm font-medium mr-2">Get Started</span>
+            <svg className="w-3 h-3 sm:w-4 sm:h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>
@@ -234,30 +234,30 @@ function SecondaryActionCard({ title, description, href, icon, color, badge }: S
       href={href}
       className="group block relative"
     >
-      <div className="relative bg-white rounded-xl p-6 border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-lg group-hover:scale-[1.02]">
+      <div className="relative bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-lg group-hover:scale-[1.02]">
         {/* Badge */}
         {badge && badge > 0 && (
-          <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+          <div className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
             {badge > 99 ? '99+' : badge}
           </div>
         )}
 
         {/* Icon */}
-        <div className={`inline-flex p-3 rounded-lg mb-4 ${colorClasses[color as keyof typeof colorClasses] || colorClasses.gray}`}>
-          {icon}
+        <div className={`inline-flex p-2 sm:p-3 rounded-lg mb-3 sm:mb-4 ${colorClasses[color as keyof typeof colorClasses] || colorClasses.gray}`}>
+          <div className="w-4 h-4 sm:w-5 sm:h-5">{icon}</div>
         </div>
 
         {/* Content */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-gray-700">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2 group-hover:text-gray-700">
           {title}
         </h3>
-        <p className="text-sm text-gray-500 leading-relaxed">
+        <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
           {description}
         </p>
 
         {/* Hover Arrow */}
-        <div className="mt-4 flex items-center text-gray-400 group-hover:text-gray-600 transition-colors">
-          <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mt-3 sm:mt-4 flex items-center text-gray-400 group-hover:text-gray-600 transition-colors">
+          <svg className="w-3 h-3 sm:w-4 sm:h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>

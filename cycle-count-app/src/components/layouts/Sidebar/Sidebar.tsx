@@ -97,6 +97,12 @@ export function Sidebar({ userRole, isCollapsed = false, onToggleCollapse }: Sid
                 icon: <ItemIcon />
               },
               {
+                id: 'zones',
+                label: 'Zones',
+                href: '/admin/zones',
+                icon: <LocationIcon />
+              },
+              {
                 id: 'users',
                 label: 'Users',
                 href: '/admin/users',
@@ -155,9 +161,22 @@ export function Sidebar({ userRole, isCollapsed = false, onToggleCollapse }: Sid
               {
                 id: 'variances',
                 label: 'Variance Review',
-                href: '/manager/variances',
+                href: '/manager/variance-review',
                 icon: <VarianceIcon />,
                 badge: 12
+              },
+              {
+                id: 'approvals',
+                label: 'Approval Queue',
+                href: '/manager/approvals',
+                icon: <QualityIcon />,
+                badge: 8
+              },
+              {
+                id: 'verified-counter',
+                label: 'Verified Counter',
+                href: '/manager/verified-counter',
+                icon: <UserIcon />
               }
             ]
           },
@@ -200,19 +219,19 @@ export function Sidebar({ userRole, isCollapsed = false, onToggleCollapse }: Sid
               {
                 id: 'dispatch',
                 label: 'Dispatch Pool',
-                href: '/lead/dispatch',
+                href: '/lead/dispatch-pool',
                 icon: <DispatchIcon />
               },
               {
                 id: 'assignments',
-                label: 'Assignments',
-                href: '/lead/assignments',
+                label: 'Assign Journals',
+                href: '/lead/assign-journals',
                 icon: <AssignmentIcon />
               },
               {
                 id: 'team-status',
-                label: 'Team Status',
-                href: '/lead/team',
+                label: 'Operator Status',
+                href: '/lead/operator-status',
                 icon: <StatusIcon />
               }
             ]

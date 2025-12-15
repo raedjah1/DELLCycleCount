@@ -63,12 +63,12 @@ export function SystemStatusWidget({
   const activity = recentActivity.length > 0 ? recentActivity : defaultActivity;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Import Status Section */}
       {importStatus.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Active Imports</h2>
-          <div className="space-y-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">Active Imports</h2>
+          <div className="space-y-3 sm:space-y-4">
             {importStatus.map((item) => (
               <ImportCard key={item.id} {...item} />
             ))}
@@ -78,15 +78,15 @@ export function SystemStatusWidget({
 
       {/* Recent Activity Section */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Activity</h2>
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">Recent Activity</h2>
+        <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 divide-y divide-gray-100">
           {activity.slice(0, 5).map((item) => (
             <ActivityCard key={item.id} {...item} />
           ))}
           
           {/* View All Button */}
-          <div className="p-4 text-center">
-            <button className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+          <div className="p-3 sm:p-4 text-center">
+            <button className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
               View All Activity
             </button>
           </div>
@@ -114,26 +114,26 @@ function ImportCard({ type, filename, status, recordsProcessed, totalRecords, st
   const config = statusConfig[status];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h4 className="font-semibold text-gray-900">{filename}</h4>
-          <p className="text-sm text-gray-500 capitalize">{type} Import</p>
+    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm sm:text-base font-semibold text-gray-900 truncate">{filename}</h4>
+          <p className="text-xs sm:text-sm text-gray-500 capitalize">{type} Import</p>
         </div>
-        <span className={`px-2 py-1 text-xs font-medium ${config.bg} ${config.text} rounded-full`}>
+        <span className={`px-2 py-1 text-xs font-medium ${config.bg} ${config.text} rounded-full flex-shrink-0 ml-2`}>
           {config.label}
         </span>
       </div>
 
       {status === 'processing' && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+        <div className="mb-3 sm:mb-4">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-2">
             <span>Progress</span>
             <span>{recordsProcessed.toLocaleString()} / {totalRecords.toLocaleString()}</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
             <div 
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              className="bg-blue-500 h-1.5 sm:h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
@@ -163,16 +163,16 @@ function ActivityCard({ type, message, timestamp, details }: ActivityItem) {
   const timeAgo = getTimeAgo(timestamp);
 
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors">
-      <div className="flex items-start space-x-3">
+    <div className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+      <div className="flex items-start space-x-2 sm:space-x-3">
         <div className="flex-shrink-0">
-          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-            <span className="text-sm">{config.icon}</span>
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-100 rounded-full flex items-center justify-center">
+            <span className="text-xs sm:text-sm">{config.icon}</span>
           </div>
         </div>
         
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">{message}</p>
+          <p className="text-xs sm:text-sm font-medium text-gray-900">{message}</p>
           {details && (
             <p className="text-xs text-gray-500 mt-1">{details}</p>
           )}

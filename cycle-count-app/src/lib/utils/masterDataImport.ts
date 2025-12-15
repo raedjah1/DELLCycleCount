@@ -11,25 +11,43 @@ import { isValidLocationCode, parseLocationCode } from './locationParser';
 // ============================================================================
 
 export interface LocationRow {
-  LocationCode: string;
-  Warehouse: string;
-  Business: string;
-  Aisle: string;
-  Bay: string;
-  PositionLevel: string;
-  Zone: string;
-  RiskLocation: string; // 'Yes'/'No' or boolean
+  ProgramID: number;
+  Warehouse?: string; // Can be empty
+  LocationNo: string; // May start with dot, missing warehouse
+  Building: string; // Maps to Business
+  Bay: string; // Maps to Aisle
+  Row: string; // Maps to Bay number
+  Tier: string; // Maps to PositionLevel
+  Bin?: string; // Full location code (e.g., ARB.AF.01.01B)
+  LocationGroup?: string; // Maps to Zone
+  Volume?: number;
+  Height?: number;
+  Width?: number;
+  Length?: number;
+  // Optional cycle count fields
+  RiskLocation?: string; // 'Yes'/'No' or boolean
   RiskReason?: string;
 }
 
 export interface ItemRow {
-  PartNumber: string;
+  ID: number;
+  Name: string;
+  PartNo: string;
   Description: string;
-  ProductType: string;
-  WarehouseType: string; // 'Rawgoods'/'Production'/'Finishedgoods'
-  ABCClass: string; // 'A'/'B'/'C'
-  StandardCost: number;
-  RawGoodsSerialRequired: string; // 'Yes'/'No' or boolean
+  ManufacturePartNo?: string;
+  ModelNo?: string;
+  SerialFlag: string; // 'Y' or 'N'
+  PrimaryCommodity?: string; // Can be 'NA'
+  SecondaryCommodity?: string; // Can be 'NA'
+  PartType: string; // 'Part', 'Component', etc.
+  Status: string; // 'ACTIVE', etc.
+  Username?: string; // Email of creator
+  CreateDate?: string; // Date string
+  LastActivityDate?: string; // Date string
+  // Optional cycle count fields (can be added manually)
+  WarehouseType?: string; // 'Rawgoods'/'Production'/'Finishedgoods'
+  ABCClass?: string; // 'A'/'B'/'C'
+  StandardCost?: number;
 }
 
 export interface ImportResult<T> {
@@ -114,53 +132,84 @@ export function validateLocationData(data: LocationRow[]): ImportResult<Location
     const rowNum = index + 2; // Account for 0-indexed array and header row
     let hasError = false;
 
-    // Required field validation
-    if (!row.LocationCode) {
-      errors.push(`Row ${rowNum}: LocationCode is required.`);
+    // Required field validation (matching Location table structure)
+    if (!row.Building) {
+      errors.push(`Row ${rowNum}: Building is required.`);
       hasError = true;
     }
-    if (!row.Warehouse) {
-      errors.push(`Row ${rowNum}: Warehouse is required.`);
+    if (!row.Bay) {
+      errors.push(`Row ${rowNum}: Bay is required.`);
       hasError = true;
     }
-    if (!row.Zone) {
-      errors.push(`Row ${rowNum}: Zone is required.`);
+    if (!row.Row) {
+      errors.push(`Row ${rowNum}: Row is required.`);
+      hasError = true;
+    }
+    if (!row.Tier) {
+      errors.push(`Row ${rowNum}: Tier is required.`);
       hasError = true;
     }
 
-    // Location code format validation
-    if (row.LocationCode && !isValidLocationCode(row.LocationCode)) {
-      errors.push(`Row ${rowNum}: Invalid LocationCode format '${row.LocationCode}'. Expected: Warehouse.Business.Aisle.Bay.PositionLevel`);
+    // Build canonical location code from parts
+    // Format: Warehouse.Business.Aisle.Bay.PositionLevel
+    // From your data: Building=ARB (Business), Bay=AF (Aisle), Row=01 (Bay), Tier=01B (PositionLevel)
+    let warehouse = row.Warehouse || ''; // Can be empty
+    const business = row.Building; // Building → Business
+    const aisle = row.Bay; // Bay → Aisle
+    const bay = row.Row; // Row → Bay number
+    const positionLevel = row.Tier; // Tier → PositionLevel
+
+    // If warehouse is empty, try to derive from Bin or LocationNo
+    if (!warehouse && row.Bin) {
+      // Bin format: ARB.AF.01.01B (missing warehouse)
+      // Try to extract or use default
+      warnings.push(`Row ${rowNum}: Warehouse is empty. Using default or derived value.`);
+      warehouse = 'Reimage'; // Default warehouse, or derive from context
+    }
+
+    // Construct canonical location code
+    const locationCode = warehouse 
+      ? `${warehouse}.${business}.${aisle}.${bay}.${positionLevel}`
+      : `${business}.${aisle}.${bay}.${positionLevel}`; // Fallback if no warehouse
+
+    // Validate location code format (if warehouse provided)
+    if (warehouse && !isValidLocationCode(locationCode)) {
+      errors.push(`Row ${rowNum}: Invalid location code format. Expected: Warehouse.Business.Aisle.Bay.PositionLevel`);
       hasError = true;
     }
 
-    // Location code consistency check
-    if (row.LocationCode && isValidLocationCode(row.LocationCode)) {
-      const parsed = parseLocationCode(row.LocationCode);
-      if (parsed) {
-        if (row.Warehouse && parsed.warehouse !== row.Warehouse) {
-          warnings.push(`Row ${rowNum}: LocationCode warehouse '${parsed.warehouse}' doesn't match Warehouse field '${row.Warehouse}'.`);
-        }
-        if (row.Business && parsed.business !== row.Business) {
-          warnings.push(`Row ${rowNum}: LocationCode business '${parsed.business}' doesn't match Business field '${row.Business}'.`);
-        }
-        if (row.Aisle && parsed.aisle !== row.Aisle) {
-          warnings.push(`Row ${rowNum}: LocationCode aisle '${parsed.aisle}' doesn't match Aisle field '${row.Aisle}'.`);
+    // Check if Bin matches constructed code
+    if (row.Bin) {
+      const binParts = row.Bin.split('.');
+      const constructedParts = locationCode.split('.');
+      if (binParts.length >= 4 && constructedParts.length >= 4) {
+        // Compare Business.Aisle.Bay.PositionLevel parts (skip warehouse)
+        const binCore = binParts.slice(-4).join('.');
+        const constructedCore = warehouse 
+          ? constructedParts.slice(1).join('.') 
+          : constructedParts.join('.');
+        if (binCore !== constructedCore) {
+          warnings.push(`Row ${rowNum}: Bin '${row.Bin}' doesn't match constructed location code '${locationCode}'.`);
         }
       }
     }
 
-    // Duplicate location check
-    if (row.LocationCode) {
-      if (seenLocations.has(row.LocationCode)) {
-        errors.push(`Row ${rowNum}: Duplicate LocationCode '${row.LocationCode}' found in this batch.`);
+    // Duplicate location check (using canonical location code)
+    if (locationCode) {
+      if (seenLocations.has(locationCode)) {
+        errors.push(`Row ${rowNum}: Duplicate location code '${locationCode}' found in this batch.`);
         hasError = true;
       } else {
-        seenLocations.add(row.LocationCode);
+        seenLocations.add(locationCode);
       }
     }
 
-    // Risk location validation
+    // LocationGroup (Zone) validation
+    if (!row.LocationGroup) {
+      warnings.push(`Row ${rowNum}: LocationGroup (Zone) is not provided. This may affect journal assignment.`);
+    }
+
+    // Risk location validation (if provided)
     if (row.RiskLocation) {
       const riskValue = row.RiskLocation.toString().toLowerCase();
       if (!['yes', 'no', 'true', 'false', '1', '0'].includes(riskValue)) {
@@ -171,12 +220,6 @@ export function validateLocationData(data: LocationRow[]): ImportResult<Location
       if (['yes', 'true', '1'].includes(riskValue) && !row.RiskReason) {
         warnings.push(`Row ${rowNum}: RiskReason should be provided when RiskLocation is '${row.RiskLocation}'.`);
       }
-    }
-
-    // Validate warehouse type (if provided)
-    const validWarehouses = ['Rawgoods', 'Production', 'Finishedgoods'];
-    if (row.Warehouse && !validWarehouses.includes(row.Warehouse)) {
-      warnings.push(`Row ${rowNum}: Unknown Warehouse type '${row.Warehouse}'. Expected: ${validWarehouses.join(', ')}.`);
     }
 
     if (!hasError) {
@@ -211,62 +254,89 @@ export function validateItemData(data: ItemRow[]): ImportResult<ItemRow> {
     const rowNum = index + 2;
     let hasError = false;
 
-    // Required field validation
-    if (!row.PartNumber) {
-      errors.push(`Row ${rowNum}: PartNumber is required.`);
+    // Required field validation (matching Part table structure)
+    if (!row.PartNo) {
+      errors.push(`Row ${rowNum}: PartNo is required.`);
+      hasError = true;
+    }
+    if (!row.Name) {
+      errors.push(`Row ${rowNum}: Name is required.`);
       hasError = true;
     }
     if (!row.Description) {
       errors.push(`Row ${rowNum}: Description is required.`);
       hasError = true;
     }
-    if (!row.ProductType) {
-      errors.push(`Row ${rowNum}: ProductType is required.`);
+    if (!row.PartType) {
+      errors.push(`Row ${rowNum}: PartType is required.`);
       hasError = true;
     }
-    if (!row.WarehouseType) {
-      errors.push(`Row ${rowNum}: WarehouseType is required.`);
+    if (!row.Status) {
+      errors.push(`Row ${rowNum}: Status is required.`);
+      hasError = true;
+    }
+    if (!row.SerialFlag) {
+      errors.push(`Row ${rowNum}: SerialFlag is required (Y or N).`);
       hasError = true;
     }
 
     // Duplicate part number check
-    if (row.PartNumber) {
-      if (seenPartNumbers.has(row.PartNumber)) {
-        errors.push(`Row ${rowNum}: Duplicate PartNumber '${row.PartNumber}' found in this batch.`);
+    if (row.PartNo) {
+      if (seenPartNumbers.has(row.PartNo)) {
+        errors.push(`Row ${rowNum}: Duplicate PartNo '${row.PartNo}' found in this batch.`);
         hasError = true;
       } else {
-        seenPartNumbers.add(row.PartNumber);
+        seenPartNumbers.add(row.PartNo);
       }
     }
 
-    // Warehouse type validation
-    const validWarehouseTypes = ['Rawgoods', 'Production', 'Finishedgoods'];
-    if (row.WarehouseType && !validWarehouseTypes.includes(row.WarehouseType)) {
-      errors.push(`Row ${rowNum}: Invalid WarehouseType '${row.WarehouseType}'. Expected: ${validWarehouseTypes.join(', ')}.`);
+    // SerialFlag validation
+    if (row.SerialFlag && !['Y', 'N', 'y', 'n'].includes(row.SerialFlag)) {
+      errors.push(`Row ${rowNum}: SerialFlag must be 'Y' or 'N'. Found: '${row.SerialFlag}'.`);
       hasError = true;
     }
 
-    // ABC class validation
+    // Status validation
+    if (row.Status && !['ACTIVE', 'INACTIVE', 'active', 'inactive'].includes(row.Status)) {
+      warnings.push(`Row ${rowNum}: Status '${row.Status}' is not a standard value. Expected: ACTIVE or INACTIVE.`);
+    }
+
+    // PartType validation (common types: Part, Component, etc.)
+    const commonPartTypes = ['Part', 'Component'];
+    if (row.PartType && !commonPartTypes.includes(row.PartType)) {
+      warnings.push(`Row ${rowNum}: PartType '${row.PartType}' is not in common types. This may be intentional.`);
+    }
+
+    // Date validation (if provided)
+    if (row.CreateDate) {
+      const createDate = new Date(row.CreateDate);
+      if (isNaN(createDate.getTime())) {
+        warnings.push(`Row ${rowNum}: CreateDate '${row.CreateDate}' could not be parsed as a valid date.`);
+      }
+    }
+
+    if (row.LastActivityDate) {
+      const lastActivityDate = new Date(row.LastActivityDate);
+      if (isNaN(lastActivityDate.getTime())) {
+        warnings.push(`Row ${rowNum}: LastActivityDate '${row.LastActivityDate}' could not be parsed as a valid date.`);
+      }
+    }
+
+    // Optional cycle count fields validation (if provided)
+    if (row.WarehouseType) {
+      const validWarehouseTypes = ['Rawgoods', 'Production', 'Finishedgoods'];
+      if (!validWarehouseTypes.includes(row.WarehouseType)) {
+        warnings.push(`Row ${rowNum}: WarehouseType '${row.WarehouseType}' is not standard. Expected: ${validWarehouseTypes.join(', ')}.`);
+      }
+    }
+
     if (row.ABCClass && !['A', 'B', 'C'].includes(row.ABCClass.toUpperCase())) {
-      warnings.push(`Row ${rowNum}: Invalid ABCClass '${row.ABCClass}'. Expected: A, B, or C.`);
+      warnings.push(`Row ${rowNum}: ABCClass '${row.ABCClass}'. Expected: A, B, or C.`);
     }
 
-    // Standard cost validation
-    if (typeof row.StandardCost !== 'number' || isNaN(row.StandardCost) || row.StandardCost < 0) {
-      warnings.push(`Row ${rowNum}: StandardCost should be a non-negative number. Current value: '${row.StandardCost}'.`);
-    }
-
-    // ProductType validation (common types)
-    const commonProductTypes = ['Laptop', 'Server', 'Switches', 'Desktop', 'AIO'];
-    if (row.ProductType && !commonProductTypes.includes(row.ProductType)) {
-      warnings.push(`Row ${rowNum}: ProductType '${row.ProductType}' is not in common types list. This may be intentional.`);
-    }
-
-    // Serial required validation (for Raw Goods)
-    if (row.WarehouseType === 'Rawgoods' && row.RawGoodsSerialRequired) {
-      const serialValue = row.RawGoodsSerialRequired.toString().toLowerCase();
-      if (!['yes', 'no', 'true', 'false', '1', '0'].includes(serialValue)) {
-        warnings.push(`Row ${rowNum}: RawGoodsSerialRequired value '${row.RawGoodsSerialRequired}' should be Yes/No or True/False.`);
+    if (row.StandardCost !== undefined) {
+      if (typeof row.StandardCost !== 'number' || isNaN(row.StandardCost) || row.StandardCost < 0) {
+        warnings.push(`Row ${rowNum}: StandardCost should be a non-negative number. Current value: '${row.StandardCost}'.`);
       }
     }
 
@@ -382,3 +452,4 @@ export async function parseItemExcel(file: File): Promise<ImportResult<ItemRow>>
     };
   }
 }
+
