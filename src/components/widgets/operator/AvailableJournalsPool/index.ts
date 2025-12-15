@@ -1,0 +1,1 @@
+export { AvailableJournalsPool } from './AvailableJournalsPool';
