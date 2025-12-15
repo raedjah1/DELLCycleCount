@@ -141,6 +141,14 @@ export function generateRouteSortKey(parsed: ParsedLocation): string {
 }
 
 /**
+ * Simple validation check - returns true/false for a single location code
+ */
+export function isValidLocationCode(locationCode: string): boolean {
+  const parsed = parseLocationCode(locationCode);
+  return parsed.isValid;
+}
+
+/**
  * Validate multiple location codes for bulk operations
  */
 export interface LocationValidationResult {

@@ -47,7 +47,7 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
   const secondaryActions = [
     {
       title: 'Location Management',
-      description: 'Manage warehouse locations and zones',
+      description: 'Manage warehouse locations with Excel import',
       href: '/admin/locations',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
     },
     {
       title: 'Item Management',
-      description: 'Manage product catalog and items',
+      description: 'Manage product catalog with Excel import',
       href: '/admin/items',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

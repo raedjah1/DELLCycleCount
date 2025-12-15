@@ -38,12 +38,6 @@ export default function AdminDashboard() {
     systemAlerts: 1
   };
 
-  const systemHealth = {
-    database: 'healthy' as const,
-    storage: 'healthy' as const,
-    api: 'healthy' as const,
-    lastUpdated: new Date().toISOString()
-  };
 
   const recentActivity = [
     {
@@ -103,7 +97,6 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                 <SystemStatusWidget 
                   recentActivity={recentActivity}
-                  systemHealth={systemHealth}
                 />
               </div>
             </div>

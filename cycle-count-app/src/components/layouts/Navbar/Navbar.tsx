@@ -78,7 +78,7 @@ export function Navbar({ userEmail, userRole, currentPath = '' }: NavbarProps) {
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left Side - Logo and Quick Links */}
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center space-x-4 lg:space-x-8">
             {/* Logo/Brand */}
             <div className="flex-shrink-0">
               <Link href={`/${userRole}/dashboard`} className="flex items-center">
@@ -86,30 +86,39 @@ export function Navbar({ userEmail, userRole, currentPath = '' }: NavbarProps) {
                      style={{ backgroundColor: roleColors.primary }}>
                   WC
                 </div>
-                <span className="ml-3 text-xl font-bold text-gray-900">
+                <span className="ml-2 lg:ml-3 text-base lg:text-xl font-bold text-gray-900 hidden sm:inline">
                   Warehouse Count
                 </span>
               </Link>
             </div>
 
-            {/* Quick Links - Hidden on mobile */}
+            {/* Quick Links - Responsive with shorter labels on smaller screens */}
             <div className="hidden md:block">
-              <div className="flex items-baseline space-x-4">
-                {quickLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      currentPath === link.href
-                        ? `text-white`
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
-                    style={currentPath === link.href ? { backgroundColor: roleColors.primary } : {}}
-                  >
-                    <span className="mr-2">{link.icon}</span>
-                    {link.label}
-                  </Link>
-                ))}
+              <div className="flex items-baseline space-x-2 lg:space-x-4">
+                {quickLinks.map((link) => {
+                  // Shorten labels for medium screens
+                  const shortLabel = link.label.length > 12 
+                    ? link.label.replace(' Import', '').replace(' Management', ' Mgmt').replace(' Dashboard', '')
+                    : link.label;
+                  
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-colors whitespace-nowrap ${
+                        currentPath === link.href
+                          ? `text-white`
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                      style={currentPath === link.href ? { backgroundColor: roleColors.primary } : {}}
+                      title={link.label} // Full label on hover
+                    >
+                      <span className="mr-1 lg:mr-2">{link.icon}</span>
+                      <span className="hidden lg:inline">{link.label}</span>
+                      <span className="lg:hidden">{shortLabel}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>

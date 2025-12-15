@@ -1,8 +1,8 @@
 // ============================================================================
-// SYSTEM STATUS WIDGET - Admin Dashboard System Health & Activity
+// SYSTEM STATUS WIDGET - Admin Dashboard Activity Monitor
 // ============================================================================
 // Location: /components/widgets/admin/SystemStatusWidget/
-// Purpose: Display system status, recent activities, and health monitoring
+// Purpose: Display recent activities and import status
 
 'use client';
 
@@ -10,7 +10,6 @@ import { useState, useEffect } from 'react';
 
 interface SystemStatusWidgetProps {
   recentActivity?: ActivityItem[];
-  systemHealth?: SystemHealthMetrics;
   importStatus?: ImportStatus[];
 }
 
@@ -20,13 +19,6 @@ interface ActivityItem {
   message: string;
   timestamp: string;
   details?: string;
-}
-
-interface SystemHealthMetrics {
-  database: 'healthy' | 'warning' | 'error';
-  storage: 'healthy' | 'warning' | 'error';
-  api: 'healthy' | 'warning' | 'error';
-  lastUpdated: string;
 }
 
 interface ImportStatus {
@@ -42,26 +34,8 @@ interface ImportStatus {
 
 export function SystemStatusWidget({ 
   recentActivity = [],
-  systemHealth,
   importStatus = []
 }: SystemStatusWidgetProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Update time every minute
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Default system health if not provided
-  const defaultHealth: SystemHealthMetrics = {
-    database: 'healthy',
-    storage: 'healthy',
-    api: 'healthy',
-    lastUpdated: currentTime.toISOString()
-  };
-
-  const health = systemHealth || defaultHealth;
 
   // Mock recent activity if none provided
   const defaultActivity: ActivityItem[] = [
