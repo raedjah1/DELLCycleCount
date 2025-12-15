@@ -18,23 +18,35 @@ export default function LocationManagementPage() {
   // Mock existing locations data
   const [locations] = useState<LocationRow[]>([
     {
-      LocationCode: 'Reimage.ARB.AB.01.01A',
+      ProgramID: 10053,
       Warehouse: 'Reimage',
-      Business: 'ARB',
-      Aisle: 'AB',
-      Bay: '01',
-      PositionLevel: '01A',
-      Zone: 'ZONE-A1',
+      LocationNo: '.ARB.AB.01.01A',
+      Building: 'ARB',
+      Bay: 'AB',
+      Row: '01',
+      Tier: '01A',
+      Bin: 'ARB.AB.01.01A',
+      LocationGroup: 'ZONE-A1',
+      Volume: 0,
+      Height: 0,
+      Width: 0,
+      Length: 0,
       RiskLocation: 'No'
     },
     {
-      LocationCode: 'Production.MFG.CD.15.03B',
+      ProgramID: 10053,
       Warehouse: 'Production',
-      Business: 'MFG',
-      Aisle: 'CD',
-      Bay: '15',
-      PositionLevel: '03B',
-      Zone: 'ZONE-P2',
+      LocationNo: '.MFG.CD.15.03B',
+      Building: 'MFG',
+      Bay: 'CD',
+      Row: '15',
+      Tier: '03B',
+      Bin: 'MFG.CD.15.03B',
+      LocationGroup: 'ZONE-P2',
+      Volume: 0,
+      Height: 0,
+      Width: 0,
+      Length: 0,
       RiskLocation: 'Yes',
       RiskReason: 'High-value components stored here'
     }
@@ -200,14 +212,14 @@ function LocationManagementTab({ locations }: LocationManagementTabProps) {
               {locations.map((location, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-mono text-sm text-gray-900">{location.LocationCode}</div>
+                    <div className="font-mono text-sm text-gray-900">{location.Bin || location.LocationNo}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{location.Warehouse}</div>
+                    <div className="text-sm text-gray-900">{location.Warehouse || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                      {location.Zone}
+                      {location.LocationGroup || 'N/A'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -281,15 +293,19 @@ function LocationImportTab({
               <p className="mb-2">Your Excel file must contain the following columns (exact spelling required):</p>
               <div className="grid grid-cols-2 gap-4">
                 <ul className="list-disc list-inside space-y-1">
-                  <li><code className="bg-blue-100 px-1 rounded">LocationCode</code> - Full location (Warehouse.Business.Aisle.Bay.PositionLevel)</li>
-                  <li><code className="bg-blue-100 px-1 rounded">Warehouse</code> - Warehouse name (Rawgoods/Production/Finishedgoods)</li>
-                  <li><code className="bg-blue-100 px-1 rounded">Business</code> - Business unit</li>
-                  <li><code className="bg-blue-100 px-1 rounded">Aisle</code> - Aisle identifier</li>
+                  <li><code className="bg-blue-100 px-1 rounded">ProgramID</code> - Program ID (number)</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Warehouse</code> - Warehouse name (optional)</li>
+                  <li><code className="bg-blue-100 px-1 rounded">LocationNo</code> - Location number (may start with dot)</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Building</code> - Building identifier</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Bay</code> - Bay identifier</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Row</code> - Row number</li>
                 </ul>
                 <ul className="list-disc list-inside space-y-1">
-                  <li><code className="bg-blue-100 px-1 rounded">Bay</code> - Bay number (numeric)</li>
-                  <li><code className="bg-blue-100 px-1 rounded">PositionLevel</code> - Position and level (e.g., 01A)</li>
-                  <li><code className="bg-blue-100 px-1 rounded">Zone</code> - Zone assignment</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Tier</code> - Tier/level (e.g., 01A)</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Bin</code> - Full location code (e.g., ARB.AF.01.01B)</li>
+                  <li><code className="bg-blue-100 px-1 rounded">LocationGroup</code> - Location group/zone</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Volume</code> - Volume (numeric, optional)</li>
+                  <li><code className="bg-blue-100 px-1 rounded">Height/Width/Length</code> - Dimensions (optional)</li>
                   <li><code className="bg-blue-100 px-1 rounded">RiskLocation</code> - Yes/No for risk locations</li>
                 </ul>
               </div>
