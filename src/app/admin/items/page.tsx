@@ -18,31 +18,61 @@ export default function ItemManagementPage() {
   // Mock existing items data
   const [items] = useState<ItemRow[]>([
     {
-      PartNumber: 'LAPTOP-DELL-001',
+      ID: 10053,
+      Name: 'DELL',
+      PartNo: 'LAPTOP-DELL-001',
       Description: 'Dell Latitude 7420 Business Laptop',
-      ProductType: 'Laptop',
+      ManufacturePartNo: 'LAPTOP-DELL-001',
+      ModelNo: 'Latitude 7420',
+      SerialFlag: 'Y',
+      PrimaryCommodity: 'Laptop',
+      SecondaryCommodity: 'NA',
+      PartType: 'Part',
+      Status: 'ACTIVE',
+      Username: 'admin@reconext.com',
+      CreateDate: new Date().toISOString(),
+      LastActivityDate: new Date().toISOString(),
       WarehouseType: 'Finishedgoods',
       ABCClass: 'A',
-      StandardCost: 1299.99,
-      RawGoodsSerialRequired: 'No'
+      StandardCost: 1299.99
     },
     {
-      PartNumber: 'SRV-HPE-DL380',
+      ID: 10054,
+      Name: 'HPE',
+      PartNo: 'SRV-HPE-DL380',
       Description: 'HPE ProLiant DL380 Gen10 Server',
-      ProductType: 'Server',
+      ManufacturePartNo: 'SRV-HPE-DL380',
+      ModelNo: 'DL380 Gen10',
+      SerialFlag: 'Y',
+      PrimaryCommodity: 'Server',
+      SecondaryCommodity: 'NA',
+      PartType: 'Part',
+      Status: 'ACTIVE',
+      Username: 'admin@reconext.com',
+      CreateDate: new Date().toISOString(),
+      LastActivityDate: new Date().toISOString(),
       WarehouseType: 'Finishedgoods',
       ABCClass: 'A',
-      StandardCost: 4599.00,
-      RawGoodsSerialRequired: 'No'
+      StandardCost: 4599.00
     },
     {
-      PartNumber: 'RAM-DDR4-32GB',
+      ID: 10055,
+      Name: 'Memory',
+      PartNo: 'RAM-DDR4-32GB',
       Description: '32GB DDR4 3200MHz Memory Module',
-      ProductType: 'Memory',
+      ManufacturePartNo: 'RAM-DDR4-32GB',
+      ModelNo: 'DDR4-32GB',
+      SerialFlag: 'Y',
+      PrimaryCommodity: 'Memory',
+      SecondaryCommodity: 'NA',
+      PartType: 'Component',
+      Status: 'ACTIVE',
+      Username: 'admin@reconext.com',
+      CreateDate: new Date().toISOString(),
+      LastActivityDate: new Date().toISOString(),
       WarehouseType: 'Rawgoods',
       ABCClass: 'B',
-      StandardCost: 189.99,
-      RawGoodsSerialRequired: 'Yes'
+      StandardCost: 189.99
     }
   ]);
 
@@ -208,14 +238,14 @@ function ItemManagementTab({ items }: ItemManagementTabProps) {
               {items.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-mono text-sm font-medium text-gray-900">{item.PartNumber}</div>
-                    <div className="text-xs text-gray-500">{item.WarehouseType}</div>
+                    <div className="font-mono text-sm font-medium text-gray-900">{item.PartNo}</div>
+                    <div className="text-xs text-gray-500">{item.WarehouseType || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 max-w-xs truncate" title={item.Description}>
                       {item.Description}
                     </div>
-                    <div className="text-xs text-gray-500">{item.ProductType}</div>
+                    <div className="text-xs text-gray-500">{item.PartType}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
@@ -225,9 +255,9 @@ function ItemManagementTab({ items }: ItemManagementTabProps) {
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-purple-100 text-purple-800'
                     }`}>
-                      {item.WarehouseType}
+                      {item.WarehouseType || 'N/A'}
                     </span>
-                    {item.WarehouseType === 'Rawgoods' && item.RawGoodsSerialRequired === 'Yes' && (
+                    {item.WarehouseType === 'Rawgoods' && item.SerialFlag === 'Y' && (
                       <div className="mt-1">
                         <span className="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                           Serial Req'd
@@ -248,7 +278,7 @@ function ItemManagementTab({ items }: ItemManagementTabProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      ${item.StandardCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      ${item.StandardCost?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -304,15 +334,20 @@ function ItemImportTab({
               <p className="mb-2">Your Excel file must contain the following columns (exact spelling required):</p>
               <div className="grid grid-cols-2 gap-4">
                 <ul className="list-disc list-inside space-y-1">
-                  <li><code className="bg-purple-100 px-1 rounded">PartNumber</code> - Unique part/SKU identifier</li>
+                  <li><code className="bg-purple-100 px-1 rounded">ID</code> - Program ID (number)</li>
+                  <li><code className="bg-purple-100 px-1 rounded">Name</code> - Item name</li>
+                  <li><code className="bg-purple-100 px-1 rounded">PartNo</code> - Unique part/SKU identifier</li>
                   <li><code className="bg-purple-100 px-1 rounded">Description</code> - Item description</li>
-                  <li><code className="bg-purple-100 px-1 rounded">ProductType</code> - Laptop, Server, Switches, etc.</li>
-                  <li><code className="bg-purple-100 px-1 rounded">WarehouseType</code> - Rawgoods, Production, Finishedgoods</li>
+                  <li><code className="bg-purple-100 px-1 rounded">SerialFlag</code> - Y or N for serial tracking</li>
+                  <li><code className="bg-purple-100 px-1 rounded">PartType</code> - Part, Component, etc.</li>
                 </ul>
                 <ul className="list-disc list-inside space-y-1">
-                  <li><code className="bg-purple-100 px-1 rounded">ABCClass</code> - A, B, or C classification</li>
-                  <li><code className="bg-purple-100 px-1 rounded">StandardCost</code> - Standard cost (numeric)</li>
-                  <li><code className="bg-purple-100 px-1 rounded">RawGoodsSerialRequired</code> - Yes/No for serial tracking</li>
+                  <li><code className="bg-purple-100 px-1 rounded">Status</code> - ACTIVE, INACTIVE, etc.</li>
+                  <li><code className="bg-purple-100 px-1 rounded">PrimaryCommodity</code> - Primary commodity type</li>
+                  <li><code className="bg-purple-100 px-1 rounded">SecondaryCommodity</code> - Secondary commodity</li>
+                  <li><code className="bg-purple-100 px-1 rounded">ManufacturePartNo</code> - Manufacturer part number</li>
+                  <li><code className="bg-purple-100 px-1 rounded">ModelNo</code> - Model number</li>
+                  <li><code className="bg-purple-100 px-1 rounded">Username</code> - Creator email</li>
                 </ul>
               </div>
             </div>
