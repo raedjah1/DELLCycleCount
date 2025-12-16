@@ -8,66 +8,54 @@
 import { useState, useEffect } from 'react';
 import { 
   SystemMetricsWidget, 
-  QuickActionsWidget, 
-  SystemStatusWidget 
+  QuickActionsWidget
 } from '@/components/widgets/admin';
+import { LocationService } from '@/lib/services/locationService';
+import { ItemService } from '@/lib/services/itemService';
+import { UserService } from '@/lib/services/userService';
 
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const [systemMetrics, setSystemMetrics] = useState({
+    totalLocations: 0,
+    totalItems: 0,
+    totalUsers: 0,
+    dataQualityIssues: 0
+  });
 
-  // Simulate data loading
+  // Fetch real data from Supabase
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchMetrics = async () => {
+      try {
+        setIsLoading(true);
+        const [locationsCount, itemsCount, usersCount] = await Promise.all([
+          LocationService.getLocationCount(),
+          ItemService.getItemCount(),
+          UserService.getActiveUserCount()
+        ]);
 
-  // Mock data - In production, this would come from APIs
-  const systemMetrics = {
-    totalLocations: 1250,
-    totalItems: 3450,
-    totalUsers: 45,
-    dataQualityIssues: 3,
-    locationsChange: 2.5,
-    itemsChange: 8.1,
-    usersChange: 0
-  };
+        setSystemMetrics({
+          totalLocations: locationsCount,
+          totalItems: itemsCount,
+          totalUsers: usersCount,
+          dataQualityIssues: 0 // TODO: Implement data quality issues count
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard metrics:', error);
+        // Keep default values on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMetrics();
+  }, []);
 
   const alertCounts = {
     dataQualityIssues: 3,
     failedImports: 0,
     systemAlerts: 1
   };
-
-
-  const recentActivity = [
-    {
-      id: '1',
-      type: 'import' as const,
-      message: 'OnHand data imported successfully',
-      timestamp: new Date(Date.now() - 300000).toISOString(),
-      details: '12,543 records processed'
-    },
-    {
-      id: '2',
-      type: 'user' as const,
-      message: 'New user registered: john.doe@example.com',
-      timestamp: new Date(Date.now() - 900000).toISOString()
-    },
-    {
-      id: '3',
-      type: 'system' as const,
-      message: 'Daily backup completed successfully',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      details: 'Database backup size: 2.4 GB'
-    },
-    {
-      id: '4',
-      type: 'import' as const,
-      message: 'Transaction data imported',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      details: '8,721 transactions processed'
-    }
-  ];
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -83,23 +71,9 @@ export default function AdminDashboard() {
             <SystemMetricsWidget metrics={systemMetrics} />
           </div>
 
-          {/* Two Column Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {/* Quick Actions - Takes up 2 columns */}
-            <div className="xl:col-span-2">
-              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
-                <QuickActionsWidget alertCounts={alertCounts} />
-              </div>
-            </div>
-
-            {/* System Status - Takes up 1 column */}
-            <div className="xl:col-span-1">
-              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
-                <SystemStatusWidget 
-                  recentActivity={recentActivity}
-                />
-              </div>
-            </div>
+          {/* Quick Actions - Full Width */}
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
+            <QuickActionsWidget alertCounts={alertCounts} />
           </div>
         </div>
       </div>

@@ -14,9 +14,6 @@ interface SystemMetricsWidgetProps {
     totalItems: number;
     totalUsers: number;
     dataQualityIssues: number;
-    locationsChange?: number;
-    itemsChange?: number;
-    usersChange?: number;
   };
 }
 
@@ -25,7 +22,6 @@ export function SystemMetricsWidget({ metrics }: SystemMetricsWidgetProps) {
     {
       title: 'Total Locations',
       value: metrics.totalLocations.toLocaleString(),
-      change: metrics.locationsChange,
       icon: '📍',
       color: 'blue' as const,
       href: '/admin/locations'
@@ -33,7 +29,6 @@ export function SystemMetricsWidget({ metrics }: SystemMetricsWidgetProps) {
     {
       title: 'Total Items',
       value: metrics.totalItems.toLocaleString(),
-      change: metrics.itemsChange,
       icon: '📦',
       color: 'green' as const,
       href: '/admin/items'
@@ -41,7 +36,6 @@ export function SystemMetricsWidget({ metrics }: SystemMetricsWidgetProps) {
     {
       title: 'Active Users',
       value: metrics.totalUsers.toString(),
-      change: metrics.usersChange,
       icon: '👥',
       color: 'purple' as const,
       href: '/admin/users'
@@ -49,7 +43,6 @@ export function SystemMetricsWidget({ metrics }: SystemMetricsWidgetProps) {
     {
       title: 'Data Quality Issues',
       value: metrics.dataQualityIssues.toString(),
-      change: undefined,
       icon: '⚠️',
       color: metrics.dataQualityIssues > 0 ? 'red' as const : 'green' as const,
       href: '/admin/data-quality'
@@ -87,13 +80,12 @@ export function SystemMetricsWidget({ metrics }: SystemMetricsWidgetProps) {
 interface MetricCardProps {
   title: string;
   value: string;
-  change?: number;
   icon: string;
   color: 'blue' | 'green' | 'purple' | 'red';
   href?: string;
 }
 
-function MetricCard({ title, value, change, icon, color, href }: MetricCardProps) {
+function MetricCard({ title, value, icon, color, href }: MetricCardProps) {
   const colorClasses = {
     blue: {
       bg: 'bg-blue-50',
@@ -143,19 +135,6 @@ function MetricCard({ title, value, change, icon, color, href }: MetricCardProps
             <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">{title}</p>
             <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{value}</p>
             
-            {/* Change Indicator */}
-            {change !== undefined && (
-              <div className="flex items-center flex-wrap">
-                <span 
-                  className={`text-xs sm:text-sm font-medium ${
-                    change >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  {change >= 0 ? '+' : ''}{change}%
-                </span>
-                <span className="text-xs text-gray-500 ml-2 hidden sm:inline">vs last month</span>
-              </div>
-            )}
           </div>
 
           {/* Icon */}

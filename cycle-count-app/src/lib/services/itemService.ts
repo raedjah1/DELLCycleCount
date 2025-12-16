@@ -68,6 +68,20 @@ export class ItemService {
     return allItems;
   }
 
+  // Get total count of items
+  static async getItemCount(): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('items')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) {
+      console.error('Error counting items:', error);
+      throw new Error(`Failed to count items: ${error.message}`);
+    }
+
+    return count || 0;
+  }
+
   // Get item by part number
   static async getItemByPartNo(partNo: string): Promise<Item | null> {
     const { data, error } = await this.supabase

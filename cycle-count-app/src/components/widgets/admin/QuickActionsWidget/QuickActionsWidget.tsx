@@ -19,9 +19,9 @@ interface QuickActionsWidgetProps {
 export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps) {
   const primaryActions = [
     {
-      title: 'OnHand Import',
-      description: 'Import current inventory snapshots from Excel',
-      href: '/admin/imports/onhand',
+      title: 'OnHand Import (Raw Goods)',
+      description: 'Import current inventory snapshots for raw goods from Excel',
+      href: '/admin/imports/onhand/raw-goods',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -31,8 +31,20 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
       priority: 'high' as const
     },
     {
+      title: 'OnHand Import (Finished Goods)',
+      description: 'Import current inventory snapshots for finished goods from Excel',
+      href: '/admin/imports/onhand',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      ),
+      color: 'green',
+      priority: 'high' as const
+    },
+    {
       title: 'Transaction Import',
-      description: 'Import warehouse transaction history',
+      description: 'Import warehouse transaction history from Excel',
       href: '/admin/imports/transactions',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +126,7 @@ export function QuickActionsWidget({ alertCounts = {} }: QuickActionsWidgetProps
           <p className="text-xs sm:text-sm text-gray-500 mt-1">Import and process warehouse data</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {primaryActions.map((action, index) => (
             <PrimaryActionCard key={index} {...action} />
           ))}

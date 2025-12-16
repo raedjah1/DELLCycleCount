@@ -244,6 +244,20 @@ export class LocationService {
     }
   }
 
+  // Get total count of locations
+  static async getLocationCount(): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('locations')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) {
+      console.error('Error counting locations:', error);
+      throw new Error(`Failed to count locations: ${error.message}`);
+    }
+
+    return count || 0;
+  }
+
   // Create a single location
   static async createLocation(locationData: {
     program_id?: number;

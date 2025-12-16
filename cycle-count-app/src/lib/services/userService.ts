@@ -220,5 +220,24 @@ export class UserService {
       throw new Error(`Failed to activate user: ${error.message}`);
     }
   }
+
+  /**
+   * Get total count of active users
+   */
+  static async getActiveUserCount(): Promise<number> {
+    const supabase = createClient();
+
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('Error counting users:', error);
+      throw new Error(`Failed to count users: ${error.message}`);
+    }
+
+    return count || 0;
+  }
 }
 

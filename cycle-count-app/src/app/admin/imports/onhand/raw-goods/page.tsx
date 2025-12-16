@@ -1,7 +1,7 @@
 // ============================================================================
-// ONHAND IMPORT SCREEN - Excel Upload for Warehouse Inventory
+// ONHAND IMPORT SCREEN (RAW GOODS) - Excel Upload for Raw Goods Inventory
 // ============================================================================
-// Admin screen for importing OnHand snapshots (Section 10.1)
+// Admin screen for importing OnHand snapshots for raw goods (Section 10.1)
 
 'use client';
 
@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { parseOnHandExcel, validateExcelFile, OnHandImportResult } from '@/lib/utils/excelImport';
 import { parseLocationCode } from '@/lib/utils/locationParser';
 
-export default function OnHandImportPage() {
+export default function RawGoodsOnHandImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [importResult, setImportResult] = useState<OnHandImportResult | null>(null);
@@ -41,8 +41,8 @@ export default function OnHandImportPage() {
       const result = await parseOnHandExcel(file);
       setImportResult(result);
       
-      // TODO: Send valid rows to Supabase
-      console.log('✅ Import Results:', result);
+      // TODO: Send valid rows to Supabase with raw_goods flag
+      console.log('✅ Raw Goods Import Results:', result);
       
     } catch (err: any) {
       setError(err.message || 'Import failed');
@@ -63,8 +63,8 @@ export default function OnHandImportPage() {
         {/* Upload Section */}
         <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Finished Goods Inventory Import</h2>
-            <p className="text-sm text-gray-600">Import current inventory snapshots for finished goods from Excel</p>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Raw Goods Inventory Import</h2>
+            <p className="text-sm text-gray-600">Import current inventory snapshots for raw goods from Excel</p>
           </div>
           
           {/* Required Format */}
@@ -77,7 +77,7 @@ export default function OnHandImportPage() {
               </div>
               <p className="mt-2"><strong>Example:</strong></p>
               <div className="bg-blue-100 p-2 sm:p-3 rounded font-mono text-xs mt-1 overflow-x-auto">
-                2024-12-15 08:00:00 | Reimage.ARB.AB.01.01A | LAPTOP-001 | 25
+                2024-12-15 08:00:00 | Reimage.ARB.AB.01.01A | RAW-001 | 25
               </div>
             </div>
           </div>
@@ -153,9 +153,9 @@ export default function OnHandImportPage() {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+          <div className="bg-red-50 border-l-4 border-red-400 p-3 sm:p-4 mb-4 sm:mb-6 rounded">
             <div className="flex">
-              <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               <div className="ml-3">
@@ -187,29 +187,29 @@ function ImportResults({ result }: ImportResultsProps) {
   const [activeTab, setActiveTab] = useState<'summary' | 'valid' | 'invalid'>('summary');
 
   return (
-    <div className="bg-white rounded-lg shadow-sm">
+    <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       {/* Results Header */}
-      <div className="p-6 border-b">
-        <h2 className="text-lg font-semibold text-gray-900">Import Results</h2>
-        <div className="flex items-center space-x-6 mt-4">
+      <div className="p-4 sm:p-6 border-b border-gray-200">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Import Results</h2>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-3 sm:mt-4">
           <div className="flex items-center">
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span className="text-sm font-medium">{result.summary.validRows} Valid</span>
+            <span className="text-xs sm:text-sm font-medium">{result.summary.validRows} Valid</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-            <span className="text-sm font-medium">{result.summary.invalidRows} Invalid</span>
+            <span className="text-xs sm:text-sm font-medium">{result.summary.invalidRows} Invalid</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-            <span className="text-sm font-medium">{result.summary.dataQualityIssues} Data Quality Issues</span>
+            <span className="text-xs sm:text-sm font-medium">{result.summary.dataQualityIssues} Data Quality Issues</span>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b">
-        <nav className="flex">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="flex min-w-max">
           {[
             { id: 'summary', label: 'Summary', count: result.summary.totalRows },
             { id: 'valid', label: 'Valid Records', count: result.summary.validRows },
@@ -218,7 +218,7 @@ function ImportResults({ result }: ImportResultsProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+              className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -231,7 +231,7 @@ function ImportResults({ result }: ImportResultsProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {activeTab === 'summary' && (
           <SummaryTab result={result} />
         )}
@@ -249,21 +249,21 @@ function ImportResults({ result }: ImportResultsProps) {
 // Summary Tab Component
 function SummaryTab({ result }: { result: OnHandImportResult }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="bg-green-50 p-4 rounded-lg">
-        <h3 className="font-medium text-green-900">Valid Records</h3>
-        <p className="text-2xl font-bold text-green-600">{result.summary.validRows}</p>
-        <p className="text-sm text-green-700">Ready to import</p>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
+        <h3 className="font-medium text-green-900 text-sm sm:text-base">Valid Records</h3>
+        <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">{result.summary.validRows}</p>
+        <p className="text-xs sm:text-sm text-green-700 mt-1">Ready to import</p>
       </div>
-      <div className="bg-red-50 p-4 rounded-lg">
-        <h3 className="font-medium text-red-900">Invalid Records</h3>
-        <p className="text-2xl font-bold text-red-600">{result.summary.invalidRows}</p>
-        <p className="text-sm text-red-700">Need correction</p>
+      <div className="bg-red-50 p-3 sm:p-4 rounded-lg">
+        <h3 className="font-medium text-red-900 text-sm sm:text-base">Invalid Records</h3>
+        <p className="text-xl sm:text-2xl font-bold text-red-600 mt-1">{result.summary.invalidRows}</p>
+        <p className="text-xs sm:text-sm text-red-700 mt-1">Need correction</p>
       </div>
-      <div className="bg-yellow-50 p-4 rounded-lg">
-        <h3 className="font-medium text-yellow-900">Data Quality Issues</h3>
-        <p className="text-2xl font-bold text-yellow-600">{result.summary.dataQualityIssues}</p>
-        <p className="text-sm text-yellow-700">Location format issues</p>
+      <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg">
+        <h3 className="font-medium text-yellow-900 text-sm sm:text-base">Data Quality Issues</h3>
+        <p className="text-xl sm:text-2xl font-bold text-yellow-600 mt-1">{result.summary.dataQualityIssues}</p>
+        <p className="text-xs sm:text-sm text-yellow-700 mt-1">Location format issues</p>
       </div>
     </div>
   );
@@ -276,25 +276,25 @@ function ValidRecordsTab({ records }: { records: any[] }) {
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Number</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Qty</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">As Of</th>
+            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Number</th>
+            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Qty</th>
+            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">As Of</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {records.slice(0, 100).map((record, index) => (
-            <tr key={index}>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            <tr key={index} className="hover:bg-gray-50">
+              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
                 {record.LocationCode}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                 {record.PartNumber}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                 {record.ExpectedQty}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                 {new Date(record.AsOfTimestamp).toLocaleString()}
               </td>
             </tr>
@@ -302,7 +302,7 @@ function ValidRecordsTab({ records }: { records: any[] }) {
         </tbody>
       </table>
       {records.length > 100 && (
-        <p className="text-center text-gray-500 py-4">
+        <p className="text-center text-gray-500 py-3 sm:py-4 text-xs sm:text-sm">
           Showing first 100 records of {records.length} total
         </p>
       )}
@@ -313,24 +313,24 @@ function ValidRecordsTab({ records }: { records: any[] }) {
 // Invalid Records Tab
 function InvalidRecordsTab({ records }: { records: any[] }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {records.map((record, index) => (
-        <div key={index} className="border border-red-200 rounded-lg p-4 bg-red-50">
+        <div key={index} className="border border-red-200 rounded-lg p-3 sm:p-4 bg-red-50">
           <div className="flex justify-between items-start mb-2">
-            <h4 className="font-medium text-red-900">Row {record.rowNumber}</h4>
+            <h4 className="font-medium text-red-900 text-sm sm:text-base">Row {record.rowNumber}</h4>
             <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
               {record.errors.length} error{record.errors.length > 1 ? 's' : ''}
             </span>
           </div>
-          <div className="mb-3">
-            <strong>Errors:</strong>
-            <ul className="list-disc list-inside text-sm text-red-700 mt-1">
+          <div className="mb-2 sm:mb-3">
+            <strong className="text-xs sm:text-sm">Errors:</strong>
+            <ul className="list-disc list-inside text-xs sm:text-sm text-red-700 mt-1">
               {record.errors.map((error: string, errorIndex: number) => (
                 <li key={errorIndex}>{error}</li>
               ))}
             </ul>
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-xs sm:text-sm text-gray-600 break-all">
             <strong>Raw data:</strong> {JSON.stringify(record.row)}
           </div>
         </div>
@@ -338,3 +338,4 @@ function InvalidRecordsTab({ records }: { records: any[] }) {
     </div>
   );
 }
+
