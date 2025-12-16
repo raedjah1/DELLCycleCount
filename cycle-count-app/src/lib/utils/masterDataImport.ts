@@ -31,23 +31,20 @@ export interface LocationRow {
 
 export interface ItemRow {
   ID: number;
-  Name: string;
   PartNo: string;
   Description: string;
+  SerialFlag: string; // 'Y' or 'N'
+  // Optional fields from Excel (we ignore these but they may be present)
+  Name?: string;
   ManufacturePartNo?: string;
   ModelNo?: string;
-  SerialFlag: string; // 'Y' or 'N'
-  PrimaryCommodity?: string; // Can be 'NA'
-  SecondaryCommodity?: string; // Can be 'NA'
-  PartType: string; // 'Part', 'Component', etc.
-  Status: string; // 'ACTIVE', etc.
-  Username?: string; // Email of creator
-  CreateDate?: string; // Date string
-  LastActivityDate?: string; // Date string
-  // Optional cycle count fields (can be added manually)
-  WarehouseType?: string; // 'Rawgoods'/'Production'/'Finishedgoods'
-  ABCClass?: string; // 'A'/'B'/'C'
-  StandardCost?: number;
+  PrimaryCommodity?: string;
+  SecondaryCommodity?: string;
+  PartType?: string;
+  Status?: string;
+  Username?: string;
+  CreateDate?: string;
+  LastActivityDate?: string;
 }
 
 export interface ImportResult<T> {
@@ -295,89 +292,34 @@ export function validateItemData(data: ItemRow[]): ImportResult<ItemRow> {
     const rowNum = index + 2;
     let hasError = false;
 
-    // Required field validation (matching Part table structure)
-    if (!row.PartNo) {
+    // Required field validation - only the 4 fields we care about
+    if (!row.PartNo || !row.PartNo.toString().trim()) {
       errors.push(`Row ${rowNum}: PartNo is required.`);
       hasError = true;
     }
-    if (!row.Name) {
-      errors.push(`Row ${rowNum}: Name is required.`);
-      hasError = true;
-    }
-    if (!row.Description) {
+    if (!row.Description || !row.Description.toString().trim()) {
       errors.push(`Row ${rowNum}: Description is required.`);
       hasError = true;
     }
-    if (!row.PartType) {
-      errors.push(`Row ${rowNum}: PartType is required.`);
-      hasError = true;
-    }
-    if (!row.Status) {
-      errors.push(`Row ${rowNum}: Status is required.`);
-      hasError = true;
-    }
-    if (!row.SerialFlag) {
+    if (!row.SerialFlag || !row.SerialFlag.toString().trim()) {
       errors.push(`Row ${rowNum}: SerialFlag is required (Y or N).`);
+      hasError = true;
+    }
+
+    // SerialFlag validation
+    if (row.SerialFlag && !['Y', 'N', 'y', 'n'].includes(row.SerialFlag.toString().trim())) {
+      errors.push(`Row ${rowNum}: SerialFlag must be 'Y' or 'N'. Found: '${row.SerialFlag}'.`);
       hasError = true;
     }
 
     // Duplicate part number check
     if (row.PartNo) {
-      if (seenPartNumbers.has(row.PartNo)) {
-        errors.push(`Row ${rowNum}: Duplicate PartNo '${row.PartNo}' found in this batch.`);
+      const partNo = row.PartNo.toString().trim();
+      if (seenPartNumbers.has(partNo)) {
+        errors.push(`Row ${rowNum}: Duplicate PartNo '${partNo}' found in this batch.`);
         hasError = true;
       } else {
-        seenPartNumbers.add(row.PartNo);
-      }
-    }
-
-    // SerialFlag validation
-    if (row.SerialFlag && !['Y', 'N', 'y', 'n'].includes(row.SerialFlag)) {
-      errors.push(`Row ${rowNum}: SerialFlag must be 'Y' or 'N'. Found: '${row.SerialFlag}'.`);
-      hasError = true;
-    }
-
-    // Status validation
-    if (row.Status && !['ACTIVE', 'INACTIVE', 'active', 'inactive'].includes(row.Status)) {
-      warnings.push(`Row ${rowNum}: Status '${row.Status}' is not a standard value. Expected: ACTIVE or INACTIVE.`);
-    }
-
-    // PartType validation (common types: Part, Component, etc.)
-    const commonPartTypes = ['Part', 'Component'];
-    if (row.PartType && !commonPartTypes.includes(row.PartType)) {
-      warnings.push(`Row ${rowNum}: PartType '${row.PartType}' is not in common types. This may be intentional.`);
-    }
-
-    // Date validation (if provided)
-    if (row.CreateDate) {
-      const createDate = new Date(row.CreateDate);
-      if (isNaN(createDate.getTime())) {
-        warnings.push(`Row ${rowNum}: CreateDate '${row.CreateDate}' could not be parsed as a valid date.`);
-      }
-    }
-
-    if (row.LastActivityDate) {
-      const lastActivityDate = new Date(row.LastActivityDate);
-      if (isNaN(lastActivityDate.getTime())) {
-        warnings.push(`Row ${rowNum}: LastActivityDate '${row.LastActivityDate}' could not be parsed as a valid date.`);
-      }
-    }
-
-    // Optional cycle count fields validation (if provided)
-    if (row.WarehouseType) {
-      const validWarehouseTypes = ['Rawgoods', 'Production', 'Finishedgoods'];
-      if (!validWarehouseTypes.includes(row.WarehouseType)) {
-        warnings.push(`Row ${rowNum}: WarehouseType '${row.WarehouseType}' is not standard. Expected: ${validWarehouseTypes.join(', ')}.`);
-      }
-    }
-
-    if (row.ABCClass && !['A', 'B', 'C'].includes(row.ABCClass.toUpperCase())) {
-      warnings.push(`Row ${rowNum}: ABCClass '${row.ABCClass}'. Expected: A, B, or C.`);
-    }
-
-    if (row.StandardCost !== undefined) {
-      if (typeof row.StandardCost !== 'number' || isNaN(row.StandardCost) || row.StandardCost < 0) {
-        warnings.push(`Row ${rowNum}: StandardCost should be a non-negative number. Current value: '${row.StandardCost}'.`);
+        seenPartNumbers.add(partNo);
       }
     }
 
@@ -408,14 +350,19 @@ export function validateExcelFile(file: File): { isValid: boolean; error?: strin
     return { isValid: false, error: 'No file selected' };
   }
 
-  // Check file type
+  // Check file type - also accept CSV
   const allowedTypes = [
     'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/csv',
+    'application/csv'
   ];
   
-  if (!allowedTypes.includes(file.type)) {
-    return { isValid: false, error: 'Please select an Excel file (.xls or .xlsx)' };
+  const allowedExtensions = ['.xls', '.xlsx', '.csv'];
+  const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+  
+  if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+    return { isValid: false, error: 'Please select an Excel file (.xls, .xlsx) or CSV file (.csv)' };
   }
 
   // Check file size (max 10MB)
@@ -465,14 +412,12 @@ export async function parseLocationExcel(file: File): Promise<ImportResult<Locat
 // ============================================================================
 
 export async function parseItemExcel(file: File): Promise<ImportResult<ItemRow>> {
+  // Only require the 4 fields we care about: ID, PartNo, Description, SerialFlag
   const requiredHeaders = [
-    'PartNumber',
+    'ID',
+    'PartNo',
     'Description',
-    'ProductType',
-    'WarehouseType',
-    'ABCClass',
-    'StandardCost',
-    'RawGoodsSerialRequired'
+    'SerialFlag'
   ];
 
   try {
