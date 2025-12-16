@@ -50,7 +50,8 @@ export function parseLocationCode(locationCode: string): ParsedLocation {
 
   // Split by dots
   const segments = trimmed.split('.');
-  if (segments.length !== 5) {
+  // Allow 4 segments (Business.Aisle.Bay.PositionLevel) or 5 segments (Warehouse.Business.Aisle.Bay.PositionLevel)
+  if (segments.length !== 4 && segments.length !== 5) {
     return {
       isValid: false,
       warehouse: '',
@@ -61,15 +62,26 @@ export function parseLocationCode(locationCode: string): ParsedLocation {
       positionLevel: '',
       positionNum: 0,
       levelLetter: '',
-      errorMessage: `Expected 5 segments separated by dots, got ${segments.length}. Format: Warehouse.Business.Aisle.Bay.PositionLevel`
+      errorMessage: `Expected 4 or 5 segments separated by dots, got ${segments.length}. Format: Business.Aisle.Bay.PositionLevel (4 segments) or Warehouse.Business.Aisle.Bay.PositionLevel (5 segments)`
     };
   }
 
-  const [warehouse, business, aisle, bayText, positionLevel] = segments;
+  // Handle both 4 and 5 segment formats
+  let warehouse = '';
+  let business = '';
+  let aisle = '';
+  let bayText = '';
+  let positionLevel = '';
 
-  // Validate Bay is numeric
-  const bayNum = parseInt(bayText, 10);
-  if (isNaN(bayNum) || bayText !== bayNum.toString().padStart(bayText.length, '0')) {
+  if (segments.length === 5) {
+    [warehouse, business, aisle, bayText, positionLevel] = segments;
+  } else {
+    // 4 segments: Business.Aisle.Bay.PositionLevel (no warehouse)
+    [business, aisle, bayText, positionLevel] = segments;
+  }
+
+  // Validate that all segments are non-empty
+  if (!business || !aisle || !bayText || !positionLevel) {
     return {
       isValid: false,
       warehouse,
@@ -80,30 +92,24 @@ export function parseLocationCode(locationCode: string): ParsedLocation {
       positionLevel,
       positionNum: 0,
       levelLetter: '',
-      errorMessage: `Bay must be numeric. Got: "${bayText}"`
+      errorMessage: `All segments must be non-empty. Got: business="${business}", aisle="${aisle}", bay="${bayText}", positionLevel="${positionLevel}"`
     };
   }
 
-  // Validate PositionLevel format: digits + single letter
+  // Try to parse Bay as numeric (optional - for sorting/routing purposes)
+  const bayNum = parseInt(bayText, 10);
+  const isBayNumeric = !isNaN(bayNum);
+
+  // Try to parse PositionLevel as digits + letter (optional - for sorting/routing purposes)
   const positionLevelRegex = /^(\d+)([A-Za-z])$/;
   const positionMatch = positionLevel.match(positionLevelRegex);
-  if (!positionMatch) {
-    return {
-      isValid: false,
-      warehouse,
-      business,
-      aisle,
-      bayText,
-      bayNum,
-      positionLevel,
-      positionNum: 0,
-      levelLetter: '',
-      errorMessage: `PositionLevel must be digits followed by single letter. Got: "${positionLevel}"`
-    };
+  let positionNum = 0;
+  let levelLetter = '';
+  
+  if (positionMatch) {
+    positionNum = parseInt(positionMatch[1], 10);
+    levelLetter = positionMatch[2].toUpperCase(); // Normalize to uppercase
   }
-
-  const positionNum = parseInt(positionMatch[1], 10);
-  const levelLetter = positionMatch[2].toUpperCase(); // Normalize to uppercase
 
   return {
     isValid: true,

@@ -133,48 +133,89 @@ export function validateLocationData(data: LocationRow[]): ImportResult<Location
     let hasError = false;
 
     // Required field validation (matching Location table structure)
-    if (!row.Building) {
+    // Trim whitespace and check for empty values
+    const building = (row.Building || '').toString().trim();
+    const bay = (row.Bay || '').toString().trim();
+    const rowValue = (row.Row || '').toString().trim();
+    const tier = (row.Tier || '').toString().trim();
+    
+    if (!building) {
       errors.push(`Row ${rowNum}: Building is required.`);
       hasError = true;
     }
-    if (!row.Bay) {
+    if (!bay) {
       errors.push(`Row ${rowNum}: Bay is required.`);
       hasError = true;
     }
-    if (!row.Row) {
+    if (!rowValue) {
       errors.push(`Row ${rowNum}: Row is required.`);
       hasError = true;
     }
-    if (!row.Tier) {
+    if (!tier) {
       errors.push(`Row ${rowNum}: Tier is required.`);
       hasError = true;
     }
 
-    // Build canonical location code from parts
-    // Format: Warehouse.Business.Aisle.Bay.PositionLevel
-    // From your data: Building=ARB (Business), Bay=AF (Aisle), Row=01 (Bay), Tier=01B (PositionLevel)
-    let warehouse = row.Warehouse || ''; // Can be empty
-    const business = row.Building; // Building → Business
-    const aisle = row.Bay; // Bay → Aisle
-    const bay = row.Row; // Row → Bay number
-    const positionLevel = row.Tier; // Tier → PositionLevel
+    // Build canonical location code - prioritize LocationNo if available
+    // LocationNo can be:
+    // 1. Code starting with dot: ".ARB.AF.01.01B" → remove dot, use as-is: "ARB.AF.01.01B"
+    // 2. Full code: "3RJRAWG.ARB.A.03.A02" → use "ARB.A.03.A02" (everything after first dot)
+    // Use Warehouse column value if available, otherwise use LocationNo as-is (no warehouse prefix)
+    let warehouse = (row.Warehouse || '').toString().trim();
+    let locationCode = '';
+    const locationNo = (row.LocationNo || '').toString().trim();
+    
+    if (locationNo) {
+      // If LocationNo starts with a dot, remove it and use as-is (no warehouse prefix)
+      if (locationNo.startsWith('.')) {
+        locationCode = locationNo.substring(1); // Remove leading dot, use as-is: "ARB.AF.01.01B"
+      } else {
+        // LocationNo is a full code (e.g., "3RJRAWG.ARB.A.03.A02")
+        // Use everything after the first dot (e.g., "ARB.A.03.A02")
+        const parts = locationNo.split('.');
+        if (parts.length > 1) {
+          locationCode = parts.slice(1).join('.'); // Everything after first segment
+        } else {
+          // LocationNo doesn't have dots, use as-is
+          locationCode = locationNo;
+        }
+      }
+      
+      // If Warehouse column has a value, prepend it to make 5 segments
+      if (warehouse) {
+        locationCode = `${warehouse}.${locationCode}`;
+      }
+    } else {
+      // Fallback: construct from individual fields
+      // Format: Warehouse.Business.Aisle.Bay.PositionLevel
+      const business = building; // Building → Business
+      const aisle = bay; // Bay → Aisle
+      const bayNumber = rowValue; // Row → Bay number
+      const positionLevel = tier; // Tier → PositionLevel
 
-    // If warehouse is empty, try to derive from Bin or LocationNo
-    if (!warehouse && row.Bin) {
-      // Bin format: ARB.AF.01.01B (missing warehouse)
-      // Try to extract or use default
-      warnings.push(`Row ${rowNum}: Warehouse is empty. Using default or derived value.`);
-      warehouse = 'Reimage'; // Default warehouse, or derive from context
+      // If warehouse is empty, construct without warehouse (4 segments)
+      if (warehouse) {
+        locationCode = `${warehouse}.${business}.${aisle}.${bayNumber}.${positionLevel}`;
+      } else {
+        locationCode = `${business}.${aisle}.${bayNumber}.${positionLevel}`;
+      }
     }
+    
+    // Check for empty segments (which would create invalid codes like "Reimage..AF.01.01B")
+    const segments = locationCode.split('.');
+    const hasEmptySegments = segments.some(seg => seg === '');
 
-    // Construct canonical location code
-    const locationCode = warehouse 
-      ? `${warehouse}.${business}.${aisle}.${bay}.${positionLevel}`
-      : `${business}.${aisle}.${bay}.${positionLevel}`; // Fallback if no warehouse
-
-    // Validate location code format (if warehouse provided)
-    if (warehouse && !isValidLocationCode(locationCode)) {
-      errors.push(`Row ${rowNum}: Invalid location code format. Expected: Warehouse.Business.Aisle.Bay.PositionLevel`);
+    // Check for empty segments first (before format validation)
+    if (hasEmptySegments) {
+      const emptySegments = segments.map((seg, idx) => seg === '' ? ['Warehouse', 'Business', 'Aisle', 'Bay', 'PositionLevel'][idx] : null).filter(Boolean);
+      errors.push(`Row ${rowNum}: Location code has empty segments. Generated: "${locationCode}". Empty segments: ${emptySegments.join(', ')}. LocationNo="${locationNo}", Warehouse="${warehouse}"`);
+      hasError = true;
+    }
+    
+    // Validate location code format (must have 4 or 5 segments)
+    if (!hasError && !isValidLocationCode(locationCode)) {
+      const segmentCount = segments.length;
+      errors.push(`Row ${rowNum}: Invalid location code format. Generated: "${locationCode}" (${segmentCount} segments). Expected: Business.Aisle.Bay.PositionLevel (4 segments) or Warehouse.Business.Aisle.Bay.PositionLevel (5 segments). LocationNo="${locationNo}", Warehouse="${warehouse}"`);
       hasError = true;
     }
 
@@ -391,15 +432,14 @@ export function validateExcelFile(file: File): { isValid: boolean; error?: strin
 // ============================================================================
 
 export async function parseLocationExcel(file: File): Promise<ImportResult<LocationRow>> {
+  // Accept actual Excel headers: ProgramID, Warehouse, LocationNo, Building, Bay, Row, Tier, Bin, LocationGroup
   const requiredHeaders = [
-    'LocationCode',
-    'Warehouse', 
-    'Business',
-    'Aisle',
+    'ProgramID',
+    'Building',
     'Bay',
-    'PositionLevel',
-    'Zone',
-    'RiskLocation'
+    'Row',
+    'Tier'
+    // Optional: Warehouse, LocationNo, Bin, LocationGroup, Volume, Height, Width, Length, RiskLocation, RiskReason
   ];
 
   try {

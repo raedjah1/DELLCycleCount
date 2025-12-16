@@ -73,14 +73,15 @@ CREATE TABLE public.locations (
   width DECIMAL(10, 2) DEFAULT 0,
   length DECIMAL(10, 2) DEFAULT 0,
   -- Canonical location code (derived/validated)
-  location_code TEXT NOT NULL UNIQUE, -- Full canonical: Warehouse.Business.Aisle.Bay.PositionLevel
+  location_code TEXT NOT NULL UNIQUE, -- Full canonical: Warehouse.Business.Aisle.Bay.PositionLevel (5 segments) or Business.Aisle.Bay.PositionLevel (4 segments)
   -- Additional cycle count fields
   is_risk_location BOOLEAN DEFAULT false,
   risk_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT valid_location_format CHECK (
-    location_code ~ '^[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.[^.]+$'
+    -- Allow 4 segments (Business.Aisle.Bay.PositionLevel) or 5 segments (Warehouse.Business.Aisle.Bay.PositionLevel)
+    location_code ~ '^([^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.[^.]+|[^.]+\\.[^.]+\\.[^.]+\\.[^.]+)$'
   )
 );
 

@@ -14,6 +14,7 @@ export default function LocationManagementPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult<LocationRow> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Mock existing locations data
   const [locations] = useState<LocationRow[]>([
@@ -75,12 +76,9 @@ export default function LocationManagementPage() {
     setError(null);
 
     try {
+      // Parse and validate Excel (don't insert yet - user clicks "Confirm Import")
       const result = await parseLocationExcel(file);
       setImportResult(result);
-      
-      // TODO: Send valid rows to Supabase
-      console.log('✅ Location Import Results:', result);
-      
     } catch (err: any) {
       setError(err.message || 'Import failed');
     } finally {
@@ -92,6 +90,40 @@ export default function LocationManagementPage() {
     setFile(null);
     setImportResult(null);
     setError(null);
+    setSuccessMessage(null);
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importResult || importResult.data.length === 0) return;
+
+    setIsUploading(true);
+    setError(null);
+    setSuccessMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const { LocationService } = await import('@/lib/services/locationService');
+      const insertResult = await LocationService.insertLocations(importResult.data);
+      
+      if (insertResult.errors.length > 0) {
+        // Partial success - show both success and errors
+        setSuccessMessage(`Successfully imported ${insertResult.inserted} locations. ${insertResult.errors.length} batch errors occurred.`);
+        console.error('Import errors:', insertResult.errors);
+        setError(`Some errors occurred: ${insertResult.errors.slice(0, 3).join(', ')}${insertResult.errors.length > 3 ? '...' : ''}`);
+      } else {
+        // Full success - show message then reload
+        setSuccessMessage(`Successfully imported ${insertResult.inserted} location${insertResult.inserted !== 1 ? 's' : ''}!`);
+        // Reload after showing success message
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
+    } catch (err: any) {
+      console.error('Import error:', err);
+      setError(err.message || 'Import failed');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -146,9 +178,11 @@ export default function LocationManagementPage() {
                 isUploading={isUploading}
                 importResult={importResult}
                 error={error}
+                successMessage={successMessage}
                 onFileSelect={handleFileSelect}
                 onImport={handleImport}
                 onReset={resetImport}
+                onConfirmImport={handleConfirmImport}
               />
             )}
           </div>
@@ -263,9 +297,11 @@ interface LocationImportTabProps {
   isUploading: boolean;
   importResult: ImportResult<LocationRow> | null;
   error: string | null;
+  successMessage: string | null;
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onImport: () => void;
   onReset: () => void;
+  onConfirmImport: () => void;
 }
 
 function LocationImportTab({
@@ -273,9 +309,11 @@ function LocationImportTab({
   isUploading,
   importResult,
   error,
+  successMessage,
   onFileSelect,
   onImport,
-  onReset
+  onReset,
+  onConfirmImport
 }: LocationImportTabProps) {
   return (
     <div className="space-y-8">
@@ -391,9 +429,26 @@ function LocationImportTab({
         </div>
       )}
 
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800">Import Successful</h3>
+              <p className="text-sm text-green-700 mt-1">{successMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -413,6 +468,8 @@ function LocationImportTab({
         <ImportResultsSection
           result={importResult}
           onStartOver={onReset}
+          onConfirmImport={onConfirmImport}
+          isImporting={isUploading}
           dataType="Location"
         />
       )}
@@ -427,10 +484,12 @@ function LocationImportTab({
 interface ImportResultsSectionProps {
   result: ImportResult<LocationRow>;
   onStartOver: () => void;
+  onConfirmImport: () => void;
+  isImporting: boolean;
   dataType: string;
 }
 
-function ImportResultsSection({ result, onStartOver, dataType }: ImportResultsSectionProps) {
+function ImportResultsSection({ result, onStartOver, onConfirmImport, isImporting, dataType }: ImportResultsSectionProps) {
   const hasErrors = result.errors.length > 0;
   const hasWarnings = result.warnings.length > 0;
 
@@ -532,11 +591,27 @@ function ImportResultsSection({ result, onStartOver, dataType }: ImportResultsSe
       {/* Final Import Button */}
       {!hasErrors && result.summary.validRows > 0 && (
         <div className="flex justify-center">
-          <button className="inline-flex items-center px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Confirm Import ({result.summary.validRows} {dataType.toLowerCase()}{result.summary.validRows !== 1 ? 's' : ''})
+          <button 
+            onClick={onConfirmImport}
+            disabled={isImporting}
+            className="inline-flex items-center px-8 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isImporting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Importing...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Confirm Import ({result.summary.validRows} {dataType.toLowerCase()}{result.summary.validRows !== 1 ? 's' : ''})
+              </>
+            )}
           </button>
         </div>
       )}
