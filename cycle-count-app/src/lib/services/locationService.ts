@@ -258,6 +258,45 @@ export class LocationService {
     return count || 0;
   }
 
+  // Get count of distinct locations after the first dot
+  // e.g., "3RJRAWB.ARB.0.0.0" counts as "ARB.0.0.0"
+  static async getDistinctLocationCount(): Promise<number> {
+    // Fetch all locations with location_code
+    const { data, error } = await this.supabase
+      .from('locations')
+      .select('location_code');
+
+    if (error) {
+      console.error('Error fetching locations for distinct count:', error);
+      throw new Error(`Failed to count distinct locations: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return 0;
+    }
+
+    // Extract distinct location codes after the first dot
+    const distinctLocations = new Set<string>();
+    
+    for (const location of data) {
+      if (location.location_code) {
+        const locationCode = String(location.location_code);
+        const firstDotIndex = locationCode.indexOf('.');
+        
+        if (firstDotIndex !== -1) {
+          // Extract everything after the first dot
+          const locationAfterDot = locationCode.substring(firstDotIndex + 1);
+          distinctLocations.add(locationAfterDot);
+        } else {
+          // If no dot, use the full code
+          distinctLocations.add(locationCode);
+        }
+      }
+    }
+
+    return distinctLocations.size;
+  }
+
   // Create a single location
   static async createLocation(locationData: {
     program_id?: number;

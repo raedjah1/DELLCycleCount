@@ -151,18 +151,15 @@ export async function parseOnHandExcel(file: File): Promise<OnHandImportResult> 
 }
 
 // ============================================================================
-// TRANSACTION IMPORT CONTRACT (Section 10.2)
+// TRANSACTION IMPORT CONTRACT
 // ============================================================================
 
 export interface TransactionRow {
-  TxnId: string;
-  TxnTime: string;
-  TxnType: string;
-  PartNumber: string;
+  PartNo: string;
+  SerialNo: string;
   Qty: number;
-  FromLocation: string;
-  ToLocation: string;
-  RefDoc: string;
+  Source: string;
+  PartTransactionType: string;
 }
 
 export interface TransactionImportResult {
@@ -172,21 +169,17 @@ export interface TransactionImportResult {
     rowNumber: number;
     errors: string[];
   }>;
-  duplicateTransactions: Array<{
-    txnId: string;
-    rowNumbers: number[];
-  }>;
   summary: {
     totalRows: number;
     validRows: number;
     invalidRows: number;
-    duplicateCount: number;
   };
 }
 
 /**
  * Parse Transaction Excel file
- * Required headers (exact): TxnId, TxnTime, TxnType, PartNumber, Qty, FromLocation, ToLocation, RefDoc
+ * Required headers: PartNo, SerialNo, Qty, Source, PartTransactionType
+ * Only extracts: PartNo, SerialNo, Qty, Source, PartTransactionType
  */
 export async function parseTransactionExcel(file: File): Promise<TransactionImportResult> {
   try {
@@ -203,7 +196,7 @@ export async function parseTransactionExcel(file: File): Promise<TransactionImpo
 
     // Validate headers
     const headers = rawData[0] as string[];
-    const requiredHeaders = ['TxnId', 'TxnTime', 'TxnType', 'PartNumber', 'Qty', 'FromLocation', 'ToLocation', 'RefDoc'];
+    const requiredHeaders = ['PartNo', 'SerialNo', 'Qty', 'Source', 'PartTransactionType'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
     
     if (missingHeaders.length > 0) {
@@ -218,7 +211,6 @@ export async function parseTransactionExcel(file: File): Promise<TransactionImpo
 
     const validRows: TransactionRow[] = [];
     const invalidRows: Array<{ row: any; rowNumber: number; errors: string[] }> = [];
-    const txnIdTracker = new Map<string, number[]>(); // Track duplicate TxnIds
 
     // Process data rows
     for (let i = 1; i < rawData.length; i++) {
@@ -227,51 +219,32 @@ export async function parseTransactionExcel(file: File): Promise<TransactionImpo
       const errors: string[] = [];
 
       // Extract required fields
-      const txnId = rowData[headerMap.TxnId];
-      const txnTime = rowData[headerMap.TxnTime];
-      const txnType = rowData[headerMap.TxnType];
-      const partNumber = rowData[headerMap.PartNumber];
-      const qty = rowData[headerMap.Qty];
-      const fromLocation = rowData[headerMap.FromLocation] || '';
-      const toLocation = rowData[headerMap.ToLocation] || '';
-      const refDoc = rowData[headerMap.RefDoc] || '';
+      const partNo = rowData[headerMap['PartNo']];
+      const serialNo = rowData[headerMap['SerialNo']];
+      const qty = rowData[headerMap['Qty']];
+      const source = rowData[headerMap['Source']];
+      const partTransactionType = rowData[headerMap['PartTransactionType']];
 
       // Validate required fields
-      if (!txnId) {
-        errors.push('TxnId is required');
+      if (!partNo || (typeof partNo === 'string' && !partNo.trim())) {
+        errors.push('PartNo is required');
       }
-      if (!txnTime) {
-        errors.push('TxnTime is required');
-      }
-      if (!txnType) {
-        errors.push('TxnType is required');
-      }
-      if (!partNumber) {
-        errors.push('PartNumber is required');
+      if (!serialNo || (typeof serialNo === 'string' && !serialNo.trim())) {
+        errors.push('SerialNo is required');
       }
       if (qty === undefined || qty === null) {
         errors.push('Qty is required');
       }
+      if (!source || (typeof source === 'string' && !source.trim())) {
+        errors.push('Source is required');
+      }
+      if (!partTransactionType || (typeof partTransactionType === 'string' && !partTransactionType.trim())) {
+        errors.push('PartTransactionType is required');
+      }
 
       // Validate data types
-      if (qty !== undefined && isNaN(Number(qty))) {
-        errors.push('Qty must be a number');
-      }
-
-      // Validate timestamp
-      if (txnTime) {
-        const date = new Date(txnTime);
-        if (isNaN(date.getTime())) {
-          errors.push('TxnTime must be a valid date');
-        }
-      }
-
-      // Track duplicate TxnIds
-      if (txnId) {
-        if (!txnIdTracker.has(txnId)) {
-          txnIdTracker.set(txnId, []);
-        }
-        txnIdTracker.get(txnId)!.push(rowNumber);
+      if (qty !== undefined && (isNaN(Number(qty)) || Number(qty) < 0)) {
+        errors.push('Qty must be a non-negative number');
       }
 
       if (errors.length > 0) {
@@ -282,32 +255,22 @@ export async function parseTransactionExcel(file: File): Promise<TransactionImpo
         });
       } else {
         validRows.push({
-          TxnId: txnId,
-          TxnTime: txnTime,
-          TxnType: txnType,
-          PartNumber: partNumber,
+          PartNo: String(partNo).trim(),
+          SerialNo: String(serialNo).trim(),
           Qty: Number(qty),
-          FromLocation: fromLocation,
-          ToLocation: toLocation,
-          RefDoc: refDoc
+          Source: String(source).trim(),
+          PartTransactionType: String(partTransactionType).trim()
         });
       }
     }
 
-    // Find duplicates
-    const duplicateTransactions = Array.from(txnIdTracker.entries())
-      .filter(([_, rowNumbers]) => rowNumbers.length > 1)
-      .map(([txnId, rowNumbers]) => ({ txnId, rowNumbers }));
-
     return {
       validRows,
       invalidRows,
-      duplicateTransactions,
       summary: {
         totalRows: rawData.length - 1,
         validRows: validRows.length,
-        invalidRows: invalidRows.length,
-        duplicateCount: duplicateTransactions.length
+        invalidRows: invalidRows.length
       }
     };
 

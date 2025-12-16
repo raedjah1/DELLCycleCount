@@ -38,6 +38,7 @@ export function Navbar({ userEmail, userRole, currentPath = '' }: NavbarProps) {
         return [
           { label: 'Dashboard', href: '/admin/dashboard', icon: '🏠' },
           { label: 'OnHand Import', href: '/admin/imports/onhand', icon: '📤' },
+          { label: 'OnHand Raw', href: '/admin/imports/onhand/raw-goods', icon: '📦' },
           { label: 'Transaction Import', href: '/admin/imports/transactions', icon: '📊' },
           { label: 'User Management', href: '/admin/users', icon: '👥' }
         ];

@@ -64,6 +64,12 @@ export function Sidebar({ userRole, isCollapsed = false, onToggleCollapse }: Sid
                 icon: <UploadIcon />
               },
               {
+                id: 'onhand-raw-import',
+                label: 'OnHand Raw',
+                href: '/admin/imports/onhand/raw-goods',
+                icon: <UploadIcon />
+              },
+              {
                 id: 'transaction-import',
                 label: 'Transaction Import',
                 href: '/admin/imports/transactions',

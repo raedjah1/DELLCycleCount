@@ -29,7 +29,7 @@ export default function AdminDashboard() {
       try {
         setIsLoading(true);
         const [locationsCount, itemsCount, usersCount] = await Promise.all([
-          LocationService.getLocationCount(),
+          LocationService.getDistinctLocationCount(), // Count distinct locations after first dot
           ItemService.getItemCount(),
           UserService.getActiveUserCount()
         ]);
