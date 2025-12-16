@@ -161,19 +161,35 @@ export class LocationService {
     return { inserted, errors };
   }
 
-  // Get all locations
+  // Get all locations (fetches all rows, not limited to 1000)
   static async getLocations(): Promise<Location[]> {
-    const { data, error } = await this.supabase
-      .from('locations')
-      .select('*')
-      .order('location_code', { ascending: true });
+    const allLocations: Location[] = [];
+    const pageSize = 1000; // Supabase default limit
+    let from = 0;
+    let hasMore = true;
 
-    if (error) {
-      console.error('Error fetching locations:', error);
-      throw new Error('Failed to fetch locations');
+    while (hasMore) {
+      const { data, error } = await this.supabase
+        .from('locations')
+        .select('*')
+        .order('location_code', { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.error('Error fetching locations:', error);
+        throw new Error('Failed to fetch locations');
+      }
+
+      if (data && data.length > 0) {
+        allLocations.push(...data);
+        from += pageSize;
+        hasMore = data.length === pageSize; // If we got exactly pageSize, there might be more
+      } else {
+        hasMore = false;
+      }
     }
 
-    return data || [];
+    return allLocations;
   }
 
   // Get location by code
@@ -190,6 +206,88 @@ export class LocationService {
       }
       console.error('Error fetching location:', error);
       throw new Error('Failed to fetch location');
+    }
+
+    return data;
+  }
+
+  // Update location
+  static async updateLocation(id: string, updates: Partial<Location>): Promise<Location> {
+    const { data, error } = await this.supabase
+      .from('locations')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating location:', error);
+      throw new Error('Failed to update location');
+    }
+
+    return data;
+  }
+
+  // Delete location
+  static async deleteLocation(id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('locations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting location:', error);
+      throw new Error('Failed to delete location');
+    }
+  }
+
+  // Create a single location
+  static async createLocation(locationData: {
+    program_id?: number;
+    warehouse?: string;
+    building: string;
+    bay: string;
+    row: string;
+    tier: string;
+    bin?: string;
+    location_group?: string;
+    is_risk_location: boolean;
+    risk_reason?: string;
+  }): Promise<Location> {
+    // Construct location code from building, bay, row, tier
+    let locationCode = `${locationData.building}.${locationData.bay}.${locationData.row}.${locationData.tier}`;
+    
+    // Prepend warehouse if provided
+    if (locationData.warehouse) {
+      locationCode = `${locationData.warehouse}.${locationCode}`;
+    }
+
+    const locationToInsert: any = {
+      program_id: locationData.program_id || 10053,
+      warehouse: locationData.warehouse || null,
+      building: locationData.building,
+      bay: locationData.bay,
+      row: locationData.row,
+      tier: locationData.tier,
+      bin: locationData.bin || null,
+      location_group: locationData.location_group || null,
+      location_code: locationCode,
+      is_risk_location: locationData.is_risk_location,
+      risk_reason: locationData.risk_reason || null
+    };
+
+    const { data, error } = await this.supabase
+      .from('locations')
+      .insert(locationToInsert)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating location:', error);
+      throw new Error(`Failed to create location: ${error.message}`);
     }
 
     return data;
