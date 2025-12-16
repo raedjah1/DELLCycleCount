@@ -72,9 +72,9 @@ export function ApprovalActions({
   // Warehouse Manager can approve if IC Manager already approved (for high-impact) or independently (for others)
   const canApprove = managerRole === 'IC_Manager' || 
                      (managerRole === 'Warehouse_Manager' && (!needsDualApproval || variance.ic_manager_approval === 'approved'));
-  
+
   const isFirstApproval = managerRole === 'IC_Manager' && needsDualApproval;
-  const isFinalApproval = managerRole === 'Warehouse_Manager' && needsDualApproval;
+  const isFinalApproval = managerRole === 'Warehouse_Manager' && needsDualApproval && variance.ic_manager_approval === 'approved';
 
   return (
     <div className={`bg-white rounded-xl p-6 shadow-sm border border-gray-200 ${className}`}>

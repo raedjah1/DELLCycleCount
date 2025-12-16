@@ -272,7 +272,7 @@ function NotificationDropdown({ onClose }: NotificationDropdownProps) {
 
 interface UserDropdownProps {
   userEmail: string;
-  userRole: 'admin' | 'manager' | 'lead' | 'operator' | 'viewer';
+  userRole: 'admin' | 'manager' | 'lead' | 'operator' | 'viewer' | 'supervisor';
   onClose: () => void;
 }
 

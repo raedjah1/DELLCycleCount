@@ -11,10 +11,10 @@ export default function RiskAnalysisPage() {
   const [dateRange, setDateRange] = useState('30d');
 
   const metrics = [
-    { title: 'Risk Locations', value: '23', change: '-2', color: 'yellow' },
-    { title: 'Compliance Rate', value: '87.2%', change: '+3.1%', color: 'green' },
-    { title: 'Variance Rate', value: '2.3x', change: '-0.2x', color: 'red' },
-    { title: 'Avg Resolution', value: '4.2h', change: '-0.5h', color: 'purple' }
+    { title: 'Risk Locations', value: '23', change: -2, color: 'orange' },
+    { title: 'Compliance Rate', value: '87.2%', change: 3.1, color: 'green' },
+    { title: 'Variance Rate', value: '2.3x', change: -0.2, color: 'red' },
+    { title: 'Avg Resolution', value: '4.2h', change: -0.5, color: 'purple' }
   ];
 
   return (

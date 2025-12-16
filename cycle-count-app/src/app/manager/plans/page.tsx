@@ -12,7 +12,7 @@ import { LoadingSpinner } from '@/components/widgets/operator/LoadingSpinner/Loa
 import { EmptyState } from '@/components/widgets/operator/EmptyState/EmptyState';
 
 export default function CountPlansPage() {
-  const [plans, setPlans] = useState<(CountPlan & { status?: string })[]>([]);
+  const [plans, setPlans] = useState<(CountPlan & { status?: 'pending' | 'in_progress' | 'completed' })[]>([]);
   const [cycles, setCycles] = useState<ReviewCycle[]>([]);
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');

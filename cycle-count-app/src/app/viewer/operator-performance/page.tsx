@@ -11,10 +11,10 @@ export default function OperatorPerformancePage() {
   const [dateRange, setDateRange] = useState('30d');
 
   const metrics = [
-    { title: 'Avg Counts/Day', value: '23.4', change: '+5.2%', color: 'green' },
-    { title: 'Top Performer', value: '31.2', change: '+2.1%', color: 'blue' },
-    { title: 'Accuracy Rate', value: '95.8%', change: '+0.5%', color: 'green' },
-    { title: 'On-Time Rate', value: '88.0%', change: '+1.2%', color: 'purple' }
+    { title: 'Avg Counts/Day', value: '23.4', change: 5.2, color: 'green' },
+    { title: 'Top Performer', value: '31.2', change: 2.1, color: 'blue' },
+    { title: 'Accuracy Rate', value: '95.8%', change: 0.5, color: 'green' },
+    { title: 'On-Time Rate', value: '88.0%', change: 1.2, color: 'purple' }
   ];
 
   return (

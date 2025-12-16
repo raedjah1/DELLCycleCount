@@ -11,10 +11,10 @@ export default function SLACompliancePage() {
   const [dateRange, setDateRange] = useState('30d');
 
   const metrics = [
-    { title: 'Overall Compliance', value: '92.5%', change: '+2.3%', color: 'green' },
-    { title: 'Raw Goods', value: '94.2%', change: '+1.1%', color: 'green' },
-    { title: 'Production', value: '89.1%', change: '-0.5%', color: 'yellow' },
-    { title: 'Finished Goods', value: '95.8%', change: '+3.2%', color: 'green' }
+    { title: 'Overall Compliance', value: '92.5%', change: 2.3, color: 'green' },
+    { title: 'Raw Goods', value: '94.2%', change: 1.1, color: 'green' },
+    { title: 'Production', value: '89.1%', change: -0.5, color: 'orange' },
+    { title: 'Finished Goods', value: '95.8%', change: 3.2, color: 'green' }
   ];
 
   return (

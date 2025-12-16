@@ -23,6 +23,13 @@ export interface Variance {
   photo_url?: string;
   notes?: string;
   created_at: string;
+  // Approval status
+  ic_manager_approval?: 'pending' | 'approved' | 'rejected';
+  ic_manager_approved_by?: string;
+  ic_manager_approved_at?: string;
+  warehouse_manager_approval?: 'pending' | 'approved' | 'rejected';
+  warehouse_manager_approved_by?: string;
+  warehouse_manager_approved_at?: string;
   // Related data
   location: {
     id: string;
@@ -122,9 +129,10 @@ export class ManagerService {
         id,
         expected_qty,
         status,
-        location:locations(location_code),
-        item:items(part_no, name, description, warehouse_type, standard_cost),
-        journal:journals(journal_number)
+        created_at,
+        location:locations(id, location_code),
+        item:items(id, part_no, name, description, warehouse_type, standard_cost),
+        journal:journals(id, journal_number)
       `)
       .in('status', ['Completed', 'Needs Recount']);
 
@@ -156,7 +164,8 @@ export class ManagerService {
           ? (varianceQty / line.expected_qty) * 100 
           : 0;
 
-        const standardCost = line.item.standard_cost || 0;
+        const item = Array.isArray(line.item) ? line.item[0] : line.item;
+        const standardCost = item?.standard_cost || 0;
         const isHighImpact = standardCost * Math.abs(varianceQty) > 1000; // $1000 threshold
 
         const photoUrl = submissions?.find(s => s.photo_url)?.photo_url;
@@ -165,7 +174,7 @@ export class ManagerService {
         let status: Variance['status'] = 'pending_review';
         if (Math.abs(varianceQty) === 0) {
           status = 'approved';
-        } else if (line.item.warehouse_type === 'Finishedgoods' && !photoUrl) {
+        } else if (item?.warehouse_type === 'Finishedgoods' && !photoUrl) {
           status = 'needs_approval';
         }
 
@@ -176,11 +185,13 @@ export class ManagerService {
           .eq('journal_line_id', line.id)
           .single();
 
+        const location = Array.isArray(line.location) ? line.location[0] : line.location;
+        
         return {
           id: line.id,
           journal_line_id: line.id,
-          location_code: line.location.location_code,
-          part_number: line.item.part_no,
+          location_code: location?.location_code || '',
+          part_number: item?.part_no || '',
           expected_qty: line.expected_qty,
           count1_qty: count1?.count_value,
           count2_qty: count2?.count_value,
@@ -188,7 +199,7 @@ export class ManagerService {
           final_count: finalCount,
           variance_qty: varianceQty,
           variance_percent: variancePercent,
-          warehouse_type: line.item.warehouse_type || '',
+          warehouse_type: item?.warehouse_type || '',
           standard_cost: standardCost,
           is_high_impact: isHighImpact,
           status,
@@ -201,20 +212,20 @@ export class ManagerService {
           warehouse_manager_approved_by: approval?.warehouse_manager_approved_by,
           warehouse_manager_approved_at: approval?.warehouse_manager_approved_at,
           location: {
-            id: line.location.id || '',
-            location_code: line.location.location_code
+            id: (Array.isArray(line.location) ? line.location[0] : line.location)?.id || '',
+            location_code: (Array.isArray(line.location) ? line.location[0] : line.location)?.location_code || ''
           },
           item: {
-            id: line.item.id || '',
-            part_no: line.item.part_no,
-            name: line.item.name || '',
-            description: line.item.description || '',
-            warehouse_type: line.item.warehouse_type || '',
+            id: item?.id || '',
+            part_no: item?.part_no || '',
+            name: item?.name || '',
+            description: item?.description || '',
+            warehouse_type: item?.warehouse_type || '',
             standard_cost: standardCost
           },
           journal: {
-            id: line.journal.id || '',
-            journal_number: line.journal.journal_number
+            id: (Array.isArray(line.journal) ? line.journal[0] : line.journal)?.id || '',
+            journal_number: (Array.isArray(line.journal) ? line.journal[0] : line.journal)?.journal_number || ''
           }
         };
       })

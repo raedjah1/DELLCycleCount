@@ -11,10 +11,10 @@ export default function VarianceAnalysisPage() {
   const [dateRange, setDateRange] = useState('30d');
 
   const metrics = [
-    { title: 'Total Variances', value: '1,234', change: '-5.2%', color: 'blue' },
-    { title: 'Explained by TXN', value: '73.2%', change: '+2.1%', color: 'green' },
-    { title: 'Unexplained', value: '26.8%', change: '-2.1%', color: 'yellow' },
-    { title: 'Avg Resolution Time', value: '2.4h', change: '-0.3h', color: 'purple' }
+    { title: 'Total Variances', value: '1,234', change: -5.2, color: 'blue' },
+    { title: 'Explained by TXN', value: '73.2%', change: 2.1, color: 'green' },
+    { title: 'Unexplained', value: '26.8%', change: -2.1, color: 'orange' },
+    { title: 'Avg Resolution Time', value: '2.4h', change: -0.3, color: 'purple' }
   ];
 
   return (

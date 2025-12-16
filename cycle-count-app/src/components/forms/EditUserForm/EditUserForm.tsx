@@ -51,7 +51,7 @@ export function EditUserForm({ user, onClose, onSave }: EditUserFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const [formData, setFormData] = useState<UserFormData & { id: string }>({
+  const [formData, setFormData] = useState<UserFormData & { id: string; password?: string }>({
     id: user.id,
     name: user.name,
     email: user.email,
@@ -59,7 +59,8 @@ export function EditUserForm({ user, onClose, onSave }: EditUserFormProps) {
     shift: user.shift,
     zones: user.zones,
     isActive: user.isActive,
-    isVerifiedCounter: user.isVerifiedCounter
+    isVerifiedCounter: user.isVerifiedCounter,
+    password: '' // Optional for edit
   });
 
   const validateForm = (): boolean => {

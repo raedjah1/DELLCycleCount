@@ -11,10 +11,10 @@ export default function VerifiedCountsPage() {
   const [dateRange, setDateRange] = useState('30d');
 
   const metrics = [
-    { title: 'Total Count 3 Reviews', value: '47', change: '+5', color: 'blue' },
-    { title: 'Resolved Cases', value: '42', change: '+3', color: 'green' },
-    { title: 'Pending Review', value: '5', change: '-2', color: 'yellow' },
-    { title: 'Resolution Rate', value: '89.4%', change: '+2.1%', color: 'green' }
+    { title: 'Total Count 3 Reviews', value: '47', change: 5, color: 'blue' },
+    { title: 'Resolved Cases', value: '42', change: 3, color: 'green' },
+    { title: 'Pending Review', value: '5', change: -2, color: 'orange' },
+    { title: 'Resolution Rate', value: '89.4%', change: 2.1, color: 'green' }
   ];
 
   return (

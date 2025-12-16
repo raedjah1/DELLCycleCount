@@ -14,12 +14,13 @@ import { EmptyState } from '@/components/widgets/operator/EmptyState/EmptyState'
 export default function VerifiedCounterPage() {
   const { user } = useCurrentUser();
   const [requests, setRequests] = useState<VerifiedCounterRequest[]>([]);
+  // Determine manager role first
+  const managerRole = user?.role === 'Warehouse_Manager' ? 'Warehouse_Manager' : 'IC_Manager';
+  
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'needs_warehouse_manager' | 'needs_ic_manager'>(
     managerRole === 'Warehouse_Manager' ? 'needs_warehouse_manager' : 'needs_ic_manager'
   );
-
-  const managerRole = user?.role === 'Warehouse_Manager' ? 'Warehouse_Manager' : 'IC_Manager';
 
   useEffect(() => {
     loadRequests();
