@@ -86,8 +86,8 @@ export default function LoginPage() {
       };
 
       const dashboardRoute = dashboardRoutes[user.role] || '/admin/dashboard';
+      // Smooth navigation without overlay
       router.push(dashboardRoute);
-      router.refresh();
     } catch (err: any) {
       console.error('Login Error:', err);
       setError(err.message || 'An error occurred during login. Please try again.');

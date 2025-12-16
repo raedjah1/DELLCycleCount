@@ -30,13 +30,16 @@ export default function SupervisorLayout({ children }: SupervisorLayoutProps) {
   // Show loading state or redirect
   if (isLoading || !user || user.role !== 'Warehouse_Supervisor') {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <svg className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
-          </svg>
-          <p className="text-gray-600">Loading...</p>
+          <div className="relative inline-block mb-4">
+            <div className="w-12 h-12 border-4 border-blue-100 rounded-full"></div>
+            <div className="absolute top-0 left-0 w-12 h-12 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <div className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+          <p className="text-sm font-medium text-gray-600">Loading...</p>
         </div>
       </div>
     );
