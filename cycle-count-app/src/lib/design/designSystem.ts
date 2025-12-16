@@ -87,6 +87,11 @@ export const designSystem = {
         primary: '#6b7280',    // Gray
         light: '#f9fafb',
         dark: '#374151'
+      },
+      supervisor: {
+        primary: '#0891b2',    // Cyan
+        light: '#ecfeff',
+        dark: '#0e7490'
       }
     }
   },

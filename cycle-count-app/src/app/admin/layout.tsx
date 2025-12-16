@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Navbar, Sidebar } from '@/components/layouts';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
@@ -21,13 +21,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, isLoading } = useCurrentUser();
 
   // Redirect to login if not authenticated or not admin
-  if (!isLoading && (!user || user.role !== 'Admin')) {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'Admin')) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
 
-  // Show loading state
-  if (isLoading || !user) {
+  // Show loading state or redirect
+  if (isLoading || !user || user.role !== 'Admin') {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">

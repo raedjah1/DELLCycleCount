@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Navbar, Sidebar } from '@/components/layouts';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
@@ -20,13 +20,14 @@ export default function OperatorLayout({ children }: OperatorLayoutProps) {
   const { user, isLoading } = useCurrentUser();
 
   // Redirect if not authenticated or not operator
-  if (!isLoading && (!user || user.role !== 'Operator')) {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'Operator')) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
 
-  // Show loading state
-  if (isLoading || !user) {
+  // Show loading state or redirect
+  if (isLoading || !user || user.role !== 'Operator') {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">

@@ -1,45 +1,50 @@
 // ============================================================================
-// COUNT INPUT - Widget for entering count value
+// COUNT INPUT WIDGET - Main quantity input with variance display
 // ============================================================================
 
 'use client';
 
 interface CountInputProps {
-  value: number | '';
-  onChange: (value: number | '') => void;
+  value: string;
+  onChange: (value: string) => void;
   expectedQty: number;
-  error?: string;
+  label?: string;
+  className?: string;
 }
 
-export function CountInput({ value, onChange, expectedQty, error }: CountInputProps) {
+export function CountInput({ 
+  value, 
+  onChange, 
+  expectedQty, 
+  label = 'Actual Quantity',
+  className = '' 
+}: CountInputProps) {
+  const variance = (parseInt(value) || 0) - expectedQty;
+  const hasVariance = Math.abs(variance) > 0;
+
   return (
-    <div>
+    <div className={className}>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Count Quantity
+        {label}
       </label>
-      <div className="relative">
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => {
-            const val = e.target.value;
-            onChange(val === '' ? '' : parseInt(val, 10));
-          }}
-          min="0"
-          className={`w-full px-4 py-4 text-2xl font-semibold text-center border-2 rounded-lg focus:outline-none focus:ring-2 transition-colors text-gray-900 ${
-            error
-              ? 'border-red-300 focus:ring-red-500'
-              : 'border-gray-300 focus:ring-blue-500'
-          }`}
-          placeholder="0"
-        />
-      </div>
-      {error && (
-        <p className="mt-2 text-sm text-red-600">{error}</p>
+      <input
+        type="number"
+        min="0"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full h-16 text-3xl font-bold text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+        placeholder="0"
+        autoFocus
+      />
+      
+      {value && (
+        <div className={`mt-2 text-center ${hasVariance ? 'text-red-600' : 'text-green-600'}`}>
+          <span className="text-sm font-medium">
+            Variance: {variance > 0 ? '+' : ''}{variance}
+            {hasVariance ? ` (${variance > 0 ? 'Over' : 'Under'})` : ' (Match)'}
+          </span>
+        </div>
       )}
-      <p className="mt-2 text-sm text-gray-500 text-center">
-        Expected: <span className="font-medium">{expectedQty}</span>
-      </p>
     </div>
   );
 }

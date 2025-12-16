@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Navbar, Sidebar } from '@/components/layouts';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
@@ -16,17 +16,18 @@ interface LeadLayoutProps {
 export default function LeadLayout({ children }: LeadLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
-
+  const router = useRouter();
   const { user, isLoading } = useCurrentUser();
 
   // Redirect if not authenticated or not lead
-  if (!isLoading && (!user || user.role !== 'Lead')) {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'Lead')) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
 
-  // Show loading state
-  if (isLoading || !user) {
+  // Show loading state or redirect
+  if (isLoading || !user || user.role !== 'Lead') {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">

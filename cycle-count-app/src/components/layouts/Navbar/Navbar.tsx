@@ -13,7 +13,7 @@ import { designSystem, getColorPalette } from '@/lib/design/designSystem';
 
 interface NavbarProps {
   userEmail: string;
-  userRole: 'admin' | 'manager' | 'lead' | 'operator' | 'viewer';
+  userRole: 'admin' | 'manager' | 'lead' | 'operator' | 'viewer' | 'supervisor';
   currentPath?: string;
 }
 
@@ -45,8 +45,22 @@ export function Navbar({ userEmail, userRole, currentPath = '' }: NavbarProps) {
         return [
           { label: 'Dashboard', href: '/manager/dashboard', icon: '🏠' },
           { label: 'Cycle Count Plans', href: '/manager/plans', icon: '📋' },
-          { label: 'Variance Review', href: '/manager/variances', icon: '🔍' },
+          { label: 'Variance Review', href: '/manager/variance-review', icon: '🔍' },
           { label: 'Reports', href: '/manager/reports', icon: '📈' }
+        ];
+      case 'supervisor':
+        return [
+          { label: 'Dashboard', href: '/supervisor/dashboard', icon: '🏠' },
+          { label: 'Work Queues', href: '/supervisor/queues', icon: '📋' },
+          { label: 'Limited Approvals', href: '/supervisor/approvals', icon: '✅' },
+          { label: 'Team Performance', href: '/supervisor/performance', icon: '📊' }
+        ];
+      case 'viewer':
+        return [
+          { label: 'Dashboard', href: '/viewer/dashboard', icon: '🏠' },
+          { label: 'SLA Compliance', href: '/viewer/sla-compliance', icon: '📈' },
+          { label: 'Variance Analysis', href: '/viewer/variance-analysis', icon: '📉' },
+          { label: 'Export Data', href: '/viewer/export', icon: '📤' }
         ];
       case 'lead':
         return [

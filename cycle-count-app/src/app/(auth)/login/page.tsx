@@ -79,7 +79,7 @@ export default function LoginPage() {
         'Admin': '/admin/dashboard',
         'IC_Manager': '/manager/dashboard',
         'Warehouse_Manager': '/manager/dashboard',
-        'Warehouse_Supervisor': '/manager/dashboard',
+        'Warehouse_Supervisor': '/supervisor/dashboard',
         'Lead': '/lead/dashboard',
         'Operator': '/operator/dashboard',
         'Viewer': '/viewer/dashboard'

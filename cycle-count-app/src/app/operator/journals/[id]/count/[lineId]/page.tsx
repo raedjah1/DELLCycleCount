@@ -1,180 +1,323 @@
 // ============================================================================
-// COUNT SCREEN - Primary counting interface for operators
+// COUNT INTERFACE - Refactored with modular widgets
 // ============================================================================
 
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { CountInput } from '@/components/widgets/operator/CountInput';
-import { SerialCaptureSection } from '@/components/widgets/operator/SerialCaptureSection';
-import { PhotoCaptureSection } from '@/components/widgets/operator/PhotoCaptureSection';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { JournalService, JournalLine, CountSubmission } from '@/lib/services/journalService';
+import { ItemInfoCard } from '@/components/widgets/operator/ItemInfoCard/ItemInfoCard';
+import { CountInput } from '@/components/widgets/operator/CountInput/CountInput';
+import { SerialCapture } from '@/components/widgets/operator/SerialCapture/SerialCapture';
+import { PhotoCapture } from '@/components/widgets/operator/PhotoCapture/PhotoCapture';
+import { SubmitButton } from '@/components/widgets/operator/SubmitButton/SubmitButton';
+import { PreviousCountsCard } from '@/components/widgets/operator/PreviousCountsCard/PreviousCountsCard';
+import { LoadingSpinner } from '@/components/widgets/operator/LoadingSpinner/LoadingSpinner';
 
 export default function CountScreenPage() {
-  const params = useParams();
   const router = useRouter();
+  const params = useParams();
+  const { user } = useCurrentUser();
+  
+  const [line, setLine] = useState<JournalLine | null>(null);
+  const [countSubmissions, setCountSubmissions] = useState<CountSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Form state
+  const [countValue, setCountValue] = useState<string>('');
+  const [serialNumbers, setSerialNumbers] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  
   const journalId = params.id as string;
   const lineId = params.lineId as string;
 
-  // Mock data - will be replaced with real data from API
-  const [lineData] = useState({
-    id: lineId,
-    locationCode: 'Reimage.ARB.AB.01.01A',
-    partNumber: 'PART-001',
-    description: 'Laptop Component',
-    expectedQty: 10,
-    warehouseType: 'Rawgoods' as 'Rawgoods' | 'Finishedgoods' | 'Production',
-    serialRequired: true,
-    expectedSerialCount: 10
-  });
+  useEffect(() => {
+    if (lineId && user?.id) {
+      loadLineData();
+    }
+  }, [lineId, user?.id]);
 
-  const [countValue, setCountValue] = useState<number | ''>('');
-  const [capturedSerials, setCapturedSerials] = useState<string[]>([]);
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string>('');
-
-  const isFinishedGoods = lineData.warehouseType === 'Finishedgoods';
-  const photoRequired = isFinishedGoods && countValue !== '' && countValue !== lineData.expectedQty;
-
-  const canSubmit = () => {
-    if (countValue === '') return false;
-    if (lineData.serialRequired && capturedSerials.length !== lineData.expectedSerialCount) return false;
-    if (photoRequired && !photoUrl) return false;
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!canSubmit()) return;
-
-    setIsSubmitting(true);
-    setError('');
-
+  const loadLineData = async () => {
     try {
-      // TODO: Submit count to API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setLoading(true);
+      const [lineData, submissions] = await Promise.all([
+        JournalService.getJournalLine(lineId),
+        JournalService.getCountSubmissions(lineId)
+      ]);
       
-      // Navigate back to journal
-      router.push(`/operator/journals/${journalId}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit count');
+      setLine(lineData);
+      setCountSubmissions(submissions);
+      
+      // Auto-claim line if unstarted
+      if (lineData.status === 'Unstarted' && user?.id) {
+        await JournalService.claimJournalLine(lineId, user.id);
+        lineData.status = 'In Progress';
+        lineData.claimed_by = user.id;
+        lineData.claimed_at = new Date().toISOString();
+        setLine(lineData);
+      }
+    } catch (error) {
+      console.error('Failed to load line data:', error);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const handleOpenSerialCapture = () => {
-    // TODO: Open serial capture modal/screen
-    console.log('Open serial capture');
+  const getCurrentCountNumber = (): 'Count 1' | 'Count 2' | 'Count 3' => {
+    const count1 = countSubmissions.find(s => s.count_type === 'Count 1');
+    const count2 = countSubmissions.find(s => s.count_type === 'Count 2');
+    
+    if (!count1) return 'Count 1';
+    if (!count2) return 'Count 2';
+    return 'Count 3';
   };
 
-  const handleCapturePhoto = () => {
-    // TODO: Open camera/photo capture
-    // For now, simulate with a placeholder
-    setPhotoUrl('/placeholder-photo.jpg');
+  const getVarianceFromExpected = (value: number) => {
+    if (!line) return 0;
+    return value - line.expected_qty;
   };
+
+  const isFinishedGoodsMismatch = () => {
+    if (!line) return false;
+    const variance = getVarianceFromExpected(parseInt(countValue) || 0);
+    return line.item.warehouse_type === 'Finishedgoods' && variance !== 0;
+  };
+
+  const requiresSerialNumbers = () => {
+    return line?.item.serial_flag === 'Y';
+  };
+
+  const addSerialNumber = (serial: string) => {
+    if (!serialNumbers.includes(serial)) {
+      setSerialNumbers([...serialNumbers, serial]);
+    }
+  };
+
+  const removeSerialNumber = (index: number) => {
+    setSerialNumbers(serialNumbers.filter((_, i) => i !== index));
+  };
+
+  const validateSubmission = () => {
+    if (!countValue.trim()) return 'Count value is required';
+    if (isNaN(parseInt(countValue))) return 'Count value must be a number';
+    if (parseInt(countValue) < 0) return 'Count value cannot be negative';
+    
+    if (requiresSerialNumbers() && parseInt(countValue) > 0) {
+      if (serialNumbers.length !== parseInt(countValue)) {
+        return `Serial numbers required: ${parseInt(countValue)} expected, ${serialNumbers.length} provided`;
+      }
+    }
+    
+    if (isFinishedGoodsMismatch() && !photoFile) {
+      return 'Photo evidence is required for Finished Goods mismatches';
+    }
+    
+    return null;
+  };
+
+  const handleSubmit = async () => {
+    if (!line || !user?.id) return;
+    
+    const validationError = validateSubmission();
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      
+      const countType = getCurrentCountNumber();
+      const countVal = parseInt(countValue);
+      
+      // Upload photo if needed
+      let photoUrl: string | undefined;
+      if (photoFile) {
+        photoUrl = await JournalService.uploadVariancePhoto(photoFile, lineId);
+      }
+      
+      // Submit count
+      await JournalService.submitCount(
+        lineId,
+        countVal,
+        countType,
+        user.id,
+        notes.trim() || undefined,
+        photoUrl
+      );
+      
+      // Capture serial numbers if required
+      if (requiresSerialNumbers() && serialNumbers.length > 0) {
+        await JournalService.captureSerialNumbers(lineId, serialNumbers, user.id);
+      }
+      
+      // Navigate to next line or journal
+      const nextLine = await getNextLine();
+      if (nextLine) {
+        router.push(`/operator/journals/${journalId}/count/${nextLine.id}`);
+      } else {
+        router.push(`/operator/journals/${journalId}`);
+      }
+      
+    } catch (error) {
+      console.error('Failed to submit count:', error);
+      alert('Failed to submit count. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getNextLine = async () => {
+    try {
+      const journal = await JournalService.getJournalWithLines(journalId);
+      const currentIndex = journal.lines.findIndex(l => l.id === lineId);
+      
+      // Find next unstarted or needs recount
+      for (let i = currentIndex + 1; i < journal.lines.length; i++) {
+        const line = journal.lines[i];
+        if (line.status === 'Unstarted' || line.status === 'Needs Recount') {
+          return line;
+        }
+      }
+      
+      // Look from beginning
+      for (let i = 0; i < currentIndex; i++) {
+        const line = journal.lines[i];
+        if (line.status === 'Unstarted' || line.status === 'Needs Recount') {
+          return line;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const currentCountType = getCurrentCountNumber();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <LoadingSpinner message="Loading count screen..." className="min-h-screen" />
+      </div>
+    );
+  }
+
+  if (!line) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Line Not Found</h1>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push(`/operator/journals/${journalId}`)}
-            className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Journal
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">{lineData.locationCode}</h1>
-        </div>
-
-        {/* Part Information */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="space-y-3">
-            <div>
-              <span className="text-sm text-gray-600">Part Number</span>
-              <p className="font-medium text-gray-900">{lineData.partNumber}</p>
-            </div>
-            <div>
-              <span className="text-sm text-gray-600">Description</span>
-              <p className="font-medium text-gray-900">{lineData.description}</p>
-            </div>
-            <div>
-              <span className="text-sm text-gray-600">Warehouse Type</span>
-              <p className="font-medium text-gray-900">{lineData.warehouseType}</p>
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="text-right">
+              <span className="text-sm text-gray-600">Sequence</span>
+              <p className="text-lg font-bold text-gray-900">#{line.sequence_number}</p>
             </div>
           </div>
+          
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-gray-900">{line.location.location_code}</h1>
+            <p className="text-gray-600">{line.item.part_no}</p>
+          </div>
         </div>
+      </div>
 
-        {/* Count Input */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div className="px-4 py-6 max-w-lg mx-auto space-y-6">
+        {/* Item Info */}
+        <ItemInfoCard line={line} />
+
+        {/* Previous Counts */}
+        <PreviousCountsCard submissions={countSubmissions} />
+
+        {/* Count Form */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-4">{currentCountType}</h3>
+          
+          {/* Count Input */}
           <CountInput
             value={countValue}
             onChange={setCountValue}
-            expectedQty={lineData.expectedQty}
-            error={error}
+            expectedQty={line.expected_qty}
+            className="mb-6"
           />
-        </div>
 
-        {/* Serial Capture (if required) */}
-        {lineData.serialRequired && (
-          <div className="mb-6">
-            <SerialCaptureSection
-              partNumber={lineData.partNumber}
-              expectedSerialCount={lineData.expectedSerialCount}
-              capturedSerials={capturedSerials}
-              onAddSerial={(serial) => setCapturedSerials([...capturedSerials, serial])}
-              onRemoveSerial={(serial) => setCapturedSerials(capturedSerials.filter(s => s !== serial))}
-              onOpenSerialCapture={handleOpenSerialCapture}
+          {/* Serial Number Capture */}
+          {requiresSerialNumbers() && parseInt(countValue) > 0 && (
+            <SerialCapture
+              serialNumbers={serialNumbers}
+              onAddSerial={addSerialNumber}
+              onRemoveSerial={removeSerialNumber}
+              expectedCount={parseInt(countValue)}
+              className="mb-6"
             />
-          </div>
-        )}
-
-        {/* Photo Capture (if required) */}
-        <div className="mb-6">
-          <PhotoCaptureSection
-            photoUrl={photoUrl}
-            onCapture={handleCapturePhoto}
-            onRetake={() => setPhotoUrl(undefined)}
-            required={photoRequired}
-          />
-        </div>
-
-        {/* Submit Button */}
-        <div className="space-y-4">
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit() || isSubmitting}
-            className="w-full px-6 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
-                </svg>
-                Submitting...
-              </span>
-            ) : (
-              'Submit Count'
-            )}
-          </button>
+          {/* Photo Capture for Finished Goods Mismatches */}
+          {isFinishedGoodsMismatch() && (
+            <PhotoCapture
+              photoFile={photoFile}
+              photoPreview={photoPreview}
+              onPhotoChange={(file, preview) => {
+                setPhotoFile(file);
+                setPhotoPreview(preview);
+              }}
+              required={true}
+              className="mb-6"
+            />
+          )}
 
-          <button
-            onClick={() => router.push(`/operator/journals/${journalId}`)}
-            className="w-full px-6 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
+          {/* Notes */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notes (Optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              placeholder="Any additional comments..."
+            />
+          </div>
+
+          {/* Submit Button */}
+          <SubmitButton
+            onSubmit={handleSubmit}
+            disabled={!countValue.trim()}
+            loading={submitting}
+            label={`Submit ${currentCountType}`}
+          />
         </div>
       </div>
     </div>

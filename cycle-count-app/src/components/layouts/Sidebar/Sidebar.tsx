@@ -12,7 +12,7 @@ import { usePathname } from 'next/navigation';
 import { designSystem, getColorPalette } from '@/lib/design/designSystem';
 
 interface SidebarProps {
-  userRole: 'admin' | 'manager' | 'lead' | 'operator' | 'viewer';
+  userRole: 'admin' | 'manager' | 'lead' | 'operator' | 'viewer' | 'supervisor';
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -281,6 +281,34 @@ export function Sidebar({ userRole, isCollapsed = false, onToggleCollapse }: Sid
           }
         ];
 
+      case 'supervisor':
+        return [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            href: '/supervisor/dashboard',
+            icon: <DashboardIcon />
+          },
+          {
+            id: 'queues',
+            label: 'Work Queues',
+            href: '/supervisor/queues',
+            icon: <DispatchIcon />
+          },
+          {
+            id: 'approvals',
+            label: 'Limited Approvals',
+            href: '/supervisor/approvals',
+            icon: <QualityIcon />
+          },
+          {
+            id: 'performance',
+            label: 'Team Performance',
+            href: '/supervisor/performance',
+            icon: <AnalyticsIcon />
+          }
+        ];
+
       case 'viewer':
         return [
           {
@@ -292,14 +320,54 @@ export function Sidebar({ userRole, isCollapsed = false, onToggleCollapse }: Sid
           {
             id: 'reports',
             label: 'Reports',
-            href: '/viewer/reports',
-            icon: <ReportIcon />
+            href: '#',
+            icon: <ReportIcon />,
+            children: [
+              {
+                id: 'sla-compliance',
+                label: 'SLA Compliance',
+                href: '/viewer/sla-compliance',
+                icon: <ReportIcon />
+              },
+              {
+                id: 'variance-analysis',
+                label: 'Variance Analysis',
+                href: '/viewer/variance-analysis',
+                icon: <VarianceIcon />
+              },
+              {
+                id: 'operator-performance',
+                label: 'Operator Performance',
+                href: '/viewer/operator-performance',
+                icon: <TeamIcon />
+              },
+              {
+                id: 'risk-analysis',
+                label: 'Risk Analysis',
+                href: '/viewer/risk-analysis',
+                icon: <QualityIcon />
+              }
+            ]
           },
           {
             id: 'analytics',
             label: 'Analytics',
-            href: '/viewer/analytics',
-            icon: <AnalyticsIcon />
+            href: '#',
+            icon: <AnalyticsIcon />,
+            children: [
+              {
+                id: 'verified-counts',
+                label: 'Verified Counts',
+                href: '/viewer/verified-counts',
+                icon: <QualityIcon />
+              },
+              {
+                id: 'recount-rates',
+                label: 'Recount Rates',
+                href: '/viewer/recount-rates',
+                icon: <VarianceIcon />
+              }
+            ]
           },
           {
             id: 'export',

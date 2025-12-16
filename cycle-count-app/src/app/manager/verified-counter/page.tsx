@@ -1,176 +1,155 @@
 // ============================================================================
-// VERIFIED COUNTER MANAGEMENT - Grant or revoke Verified Counter certification
+// VERIFIED COUNTER PAGE - Manage Verified Counter certifications
 // ============================================================================
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { ManagerService, VerifiedCounterRequest } from '@/lib/services/managerService';
+import { VerifiedCounterCard } from '@/components/widgets/manager/VerifiedCounterCard/VerifiedCounterCard';
+import { LoadingSpinner } from '@/components/widgets/operator/LoadingSpinner/LoadingSpinner';
+import { EmptyState } from '@/components/widgets/operator/EmptyState/EmptyState';
 
-export default function VerifiedCounterManagementPage() {
-  const router = useRouter();
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+export default function VerifiedCounterPage() {
+  const { user } = useCurrentUser();
+  const [requests, setRequests] = useState<VerifiedCounterRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'pending' | 'needs_warehouse_manager' | 'needs_ic_manager'>(
+    managerRole === 'Warehouse_Manager' ? 'needs_warehouse_manager' : 'needs_ic_manager'
+  );
 
-  // Mock data
-  const [users] = useState([
-    {
-      id: '1',
-      name: 'John Smith',
-      role: 'Lead',
-      isVerifiedCounter: true,
-      certifiedDate: '2024-11-15T08:00:00Z',
-      certifiedBy: 'IC Manager & Warehouse Manager'
-    },
-    {
-      id: '2',
-      name: 'Maria Garcia',
-      role: 'Warehouse Supervisor',
-      isVerifiedCounter: false,
-      pendingRequest: {
-        requestedBy: 'IC Manager',
-        requestedDate: '2024-12-14T10:00:00Z',
-        icManagerApproval: 'approved',
-        warehouseManagerApproval: 'pending'
-      }
-    },
-    {
-      id: '3',
-      name: 'Mike Johnson',
-      role: 'Lead',
-      isVerifiedCounter: false,
-      pendingRequest: null
+  const managerRole = user?.role === 'Warehouse_Manager' ? 'Warehouse_Manager' : 'IC_Manager';
+
+  useEffect(() => {
+    loadRequests();
+  }, [filter]);
+
+  const loadRequests = async () => {
+    try {
+      setLoading(true);
+      const data = await ManagerService.getVerifiedCounterRequests(filter);
+      setRequests(data);
+    } catch (error) {
+      console.error('Failed to load verified counter requests:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  const handleApproved = async (requestId: string) => {
+    try {
+      await ManagerService.approveVerifiedCounter(requestId, user?.id || '', managerRole);
+      loadRequests();
+    } catch (error: any) {
+      alert(`Failed to approve: ${error.message}`);
+    }
+  };
+
+  const handleRejected = async (requestId: string) => {
+    try {
+      // Implement reject logic
+      alert('Reject functionality to be implemented');
+      loadRequests();
+    } catch (error: any) {
+      alert(`Failed to reject: ${error.message}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <LoadingSpinner message="Loading verified counter requests..." className="min-h-screen" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push('/manager/dashboard')}
-            className="text-gray-600 hover:text-gray-900 mb-4 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Dashboard
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Verified Counter Management</h1>
-          <p className="text-gray-600 mt-2">Grant or revoke Verified Counter certification (requires dual approval)</p>
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Verified Counter Management</h1>
+          <p className="text-gray-600">Grant or revoke Verified Counter certification (requires dual approval)</p>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-6">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFilter(managerRole === 'Warehouse_Manager' ? 'needs_warehouse_manager' : 'needs_ic_manager')}
+              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                (filter === 'needs_warehouse_manager' || filter === 'needs_ic_manager')
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Needs My Approval
+            </button>
+            <button
+              onClick={() => setFilter('pending')}
+              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                filter === 'pending'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Pending
+            </button>
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              All
+            </button>
+          </div>
         </div>
 
         {/* Pending Requests */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Pending Certification Requests</h2>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="divide-y divide-gray-200">
-              {users
-                .filter(u => u.pendingRequest)
-                .map((user) => (
-                  <div key={user.id} className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{user.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{user.role}</p>
-                      </div>
-                      <span className="px-3 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                        Pending Approval
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">IC Manager</span>
-                        <p className={`font-medium mt-1 ${
-                          user.pendingRequest?.icManagerApproval === 'approved'
-                            ? 'text-green-600'
-                            : 'text-gray-400'
-                        }`}>
-                          {user.pendingRequest?.icManagerApproval === 'approved' ? '✓ Approved' : 'Pending'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Warehouse Manager</span>
-                        <p className={`font-medium mt-1 ${
-                          user.pendingRequest?.warehouseManagerApproval === 'approved'
-                            ? 'text-green-600'
-                            : 'text-gray-400'
-                        }`}>
-                          {user.pendingRequest?.warehouseManagerApproval === 'approved' ? '✓ Approved' : 'Pending'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <button className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-                        Approve
-                      </button>
-                      <button className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
-                        Reject
-                      </button>
-                    </div>
-                  </div>
+        {requests.filter(r => r.status === 'pending' || r.status === 'partially_approved').length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Pending Certification Requests</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {requests
+                .filter(r => r.status === 'pending' || r.status === 'partially_approved')
+                .map((request) => (
+                  <VerifiedCounterCard
+                    key={request.id}
+                    request={request}
+                    managerRole={managerRole}
+                    onApprove={handleApproved}
+                    onReject={handleRejected}
+                  />
                 ))}
-              {users.filter(u => u.pendingRequest).length === 0 && (
-                <div className="p-6 text-center text-gray-500">
-                  No pending certification requests
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* All Users */}
+        {/* All Requests */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">All Users</h2>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Certification Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Certified Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.role}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {user.isVerifiedCounter ? (
-                        <span className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          Certified
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                          Not Certified
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {user.isVerifiedCounter && user.certifiedDate
-                          ? new Date(user.certifiedDate).toLocaleDateString()
-                          : '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.isVerifiedCounter ? (
-                        <button className="text-red-600 hover:text-red-800">Revoke</button>
-                      ) : (
-                        <button className="text-blue-600 hover:text-blue-800">Request Certification</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">All Requests ({requests.length})</h2>
+          {requests.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {requests.map((request) => (
+                <VerifiedCounterCard
+                  key={request.id}
+                  request={request}
+                  managerRole={managerRole}
+                  onApprove={handleApproved}
+                  onReject={handleRejected}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No Verified Counter Requests"
+              description="No verified counter certification requests found."
+              className="bg-white rounded-xl border border-gray-200"
+            />
+          )}
         </div>
       </div>
     </div>
