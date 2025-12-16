@@ -216,6 +216,17 @@ export async function parseTransactionExcel(file: File): Promise<TransactionImpo
     for (let i = 1; i < rawData.length; i++) {
       const rowData = rawData[i];
       const rowNumber = i + 1;
+
+      // Extract PartTransactionType first to check if we should skip this record entirely
+      const partTransactionType = rowData[headerMap['PartTransactionType']];
+      const transactionTypeStr = String(partTransactionType || '').trim().toUpperCase();
+
+      // Skip unwanted transaction types immediately - don't validate or process them
+      const skipTypes = ['SO-CLOSE', 'RO-CLOSE', 'SO-CSCLOSE', 'SO-CANCEL'];
+      if (skipTypes.includes(transactionTypeStr)) {
+        continue; // Skip silently, don't count as valid or invalid
+      }
+
       const errors: string[] = [];
 
       // Extract required fields
@@ -223,7 +234,6 @@ export async function parseTransactionExcel(file: File): Promise<TransactionImpo
       const serialNo = rowData[headerMap['SerialNo']];
       const qty = rowData[headerMap['Qty']];
       const source = rowData[headerMap['Source']];
-      const partTransactionType = rowData[headerMap['PartTransactionType']];
 
       // Validate required fields
       if (!partNo || (typeof partNo === 'string' && !partNo.trim())) {

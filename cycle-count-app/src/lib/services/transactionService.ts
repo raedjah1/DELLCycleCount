@@ -20,42 +20,56 @@ export class TransactionService {
   private static supabase = createClient();
 
   // Insert transactions from import
+  // Skips invalid records silently and continues inserting valid ones
   static async insertTransactions(rows: TransactionRow[]): Promise<{ inserted: number; errors: string[] }> {
     const errors: string[] = [];
     const itemsToInsert: any[] = [];
 
+    // First pass: validate and prepare all rows (skip invalid ones silently)
     for (const row of rows) {
       try {
+        // Skip if any required field is missing or empty
+        if (!row.PartNo || !row.SerialNo || !row.Source || !row.PartTransactionType) {
+          continue; // Skip silently
+        }
+
+        // Validate Qty is a valid number
+        if (row.Qty === undefined || row.Qty === null || isNaN(Number(row.Qty)) || Number(row.Qty) < 0) {
+          continue; // Skip silently
+        }
+
         const itemToInsert: any = {
-          part_no: row.PartNo,
-          serial_no: row.SerialNo,
-          qty: row.Qty,
-          source: row.Source,
-          part_transaction_type: row.PartTransactionType
+          part_no: String(row.PartNo).trim(),
+          serial_no: String(row.SerialNo).trim(),
+          qty: Number(row.Qty),
+          source: String(row.Source).trim(),
+          part_transaction_type: String(row.PartTransactionType).trim()
         };
 
-        // Validate required fields
+        // Final validation - skip if any field is empty after trimming
         if (!itemToInsert.part_no || !itemToInsert.serial_no || !itemToInsert.source || !itemToInsert.part_transaction_type) {
-          errors.push(`Row with Part No "${row.PartNo}" and Serial No "${row.SerialNo}": Missing required fields`);
-          continue;
+          continue; // Skip silently
         }
 
         itemsToInsert.push(itemToInsert);
       } catch (error: any) {
-        errors.push(`Row with Part No "${row.PartNo}" and Serial No "${row.SerialNo}": ${error.message}`);
+        // Skip records that cause errors during preparation
+        continue;
       }
     }
 
     if (itemsToInsert.length === 0) {
-      return { inserted: 0, errors };
+      return { inserted: 0, errors: ['No valid records to import'] };
     }
 
-    // Insert in batches of 1000
+    // Insert in batches of 1000, with fallback to smaller batches for duplicates
     const batchSize = 1000;
     let totalInserted = 0;
+    let duplicateCount = 0;
 
     for (let i = 0; i < itemsToInsert.length; i += batchSize) {
       const batch = itemsToInsert.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
       
       const { data, error } = await this.supabase
         .from('transactions')
@@ -63,15 +77,59 @@ export class TransactionService {
         .select();
 
       if (error) {
-        // Handle duplicate key errors gracefully
+        // Handle duplicate key errors by trying smaller batches
         if (error.code === '23505') { // Unique constraint violation
-          errors.push(`Batch ${Math.floor(i / batchSize) + 1}: Some records already exist (duplicates skipped)`);
+          // Try inserting in smaller batches of 100 to skip duplicates
+          const subBatchSize = 100;
+          let batchInserted = 0;
+          
+          for (let j = 0; j < batch.length; j += subBatchSize) {
+            const subBatch = batch.slice(j, j + subBatchSize);
+            const { data: subData, error: subError } = await this.supabase
+              .from('transactions')
+              .insert(subBatch)
+              .select();
+            
+            if (!subError) {
+              batchInserted += subData?.length || 0;
+            } else if (subError.code === '23505') {
+              // If sub-batch has duplicates, try individual inserts
+              for (const item of subBatch) {
+                const { data: singleData, error: singleError } = await this.supabase
+                  .from('transactions')
+                  .insert(item)
+                  .select();
+                
+                if (!singleError) {
+                  batchInserted += singleData?.length || 0;
+                } else {
+                  duplicateCount++; // Skip duplicates silently
+                }
+              }
+            } else {
+              // Other error - log it
+              errors.push(`Batch ${batchNumber}, sub-batch ${Math.floor(j / subBatchSize) + 1}: ${subError.message}`);
+              duplicateCount += subBatch.length;
+            }
+          }
+          
+          totalInserted += batchInserted;
+          if (batchInserted < batch.length) {
+            duplicateCount += (batch.length - batchInserted);
+          }
         } else {
-          errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${error.message}`);
+          // Other errors - log the actual error
+          errors.push(`Batch ${batchNumber}: ${error.message}`);
         }
       } else {
+        // Batch succeeded
         totalInserted += data?.length || 0;
       }
+    }
+
+    // Add summary message if many duplicates
+    if (duplicateCount > 0) {
+      errors.push(`${duplicateCount} records were skipped (duplicates)`);
     }
 
     return { inserted: totalInserted, errors };
@@ -140,6 +198,27 @@ export class TransactionService {
       console.error('Error deleting transaction:', error);
       throw new Error(`Failed to delete transaction: ${error.message}`);
     }
+  }
+
+  // Delete all transactions (wipe database)
+  static async deleteAllTransactions(): Promise<number> {
+    // Get count before deletion
+    const { count: countBefore } = await this.supabase
+      .from('transactions')
+      .select('*', { count: 'exact', head: true });
+
+    // Delete all transactions
+    const { error } = await this.supabase
+      .from('transactions')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (using a condition that matches all rows)
+
+    if (error) {
+      console.error('Error deleting all transactions:', error);
+      throw new Error(`Failed to delete all transactions: ${error.message}`);
+    }
+
+    return countBefore || 0;
   }
 }
 

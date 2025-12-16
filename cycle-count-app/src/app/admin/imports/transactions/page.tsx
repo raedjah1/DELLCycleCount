@@ -99,6 +99,19 @@ export default function TransactionPage() {
     }
   };
 
+  const handleDeleteAllTransactions = async (): Promise<number> => {
+    try {
+      const deletedCount = await TransactionService.deleteAllTransactions();
+      setSuccessMessage(`Successfully deleted all ${deletedCount} transaction records!`);
+      await fetchTransactions();
+      setTimeout(() => setSuccessMessage(null), 5000);
+      return deletedCount;
+    } catch (err: any) {
+      setError(`Failed to delete all transactions: ${err.message}`);
+      throw err;
+    }
+  };
+
   const handleConfirmImport = async () => {
     if (!importResult || importResult.validRows.length === 0) return;
 
@@ -179,6 +192,7 @@ export default function TransactionPage() {
                 transactions={transactions}
                 isLoading={isLoadingTransactions}
                 onDelete={handleDeleteTransaction}
+                onDeleteAll={handleDeleteAllTransactions}
                 onRefresh={fetchTransactions}
                 onSearch={(query) => {
                   setSearchQuery(query);
