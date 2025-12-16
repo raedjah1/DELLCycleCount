@@ -5,77 +5,39 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AddUserForm, EditUserForm, UserFormData } from '@/components/forms';
+import { UserService, User } from '@/lib/services/userService';
 
 export default function UserManagementPage() {
   const [activeTab, setActiveTab] = useState<'manage' | 'roles' | 'verified'>('manage');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null);
 
-  // Mock users data
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      name: 'Raed Jah',
-      email: 'raed.jah@reconext.com',
-      role: 'Admin',
-      isVerifiedCounter: true,
-      isActive: true,
-      shift: 'Day',
-      zones: ['ZONE-A1', 'ZONE-A2', 'ZONE-A3', 'ZONE-B1', 'ZONE-B2', 'ZONE-B3', 'ZONE-C1', 'ZONE-C2', 'ZONE-C3'],
-      lastLogin: '2024-12-15T10:30:00Z',
-      createdAt: '2024-01-15T08:00:00Z'
-    },
-    {
-      id: '2',
-      name: 'John Smith',
-      email: 'john.smith@reconext.com',
-      role: 'Warehouse_Manager',
-      isVerifiedCounter: true,
-      isActive: true,
-      shift: 'Day',
-      zones: ['ZONE-A1', 'ZONE-A2'],
-      lastLogin: '2024-12-15T09:15:00Z',
-      createdAt: '2024-02-01T08:00:00Z'
-    },
-    {
-      id: '3',
-      name: 'Maria Garcia',
-      email: 'maria.garcia@reconext.com',
-      role: 'Lead',
-      isVerifiedCounter: false,
-      isActive: true,
-      shift: 'Day',
-      zones: ['ZONE-B1'],
-      lastLogin: '2024-12-15T08:45:00Z',
-      createdAt: '2024-03-10T08:00:00Z'
-    },
-    {
-      id: '4',
-      name: 'Mike Johnson',
-      email: 'mike.johnson@reconext.com',
-      role: 'Operator',
-      isVerifiedCounter: false,
-      isActive: true,
-      shift: 'Night',
-      zones: ['ZONE-C1', 'ZONE-C2'],
-      lastLogin: '2024-12-14T22:30:00Z',
-      createdAt: '2024-04-05T08:00:00Z'
-    },
-    {
-      id: '5',
-      name: 'Sarah Wilson',
-      email: 'sarah.wilson@reconext.com',
-      role: 'Viewer',
-      isVerifiedCounter: false,
-      isActive: false,
-      shift: 'Day',
-      zones: [],
-      lastLogin: '2024-12-10T14:20:00Z',
-      createdAt: '2024-05-20T08:00:00Z'
+  // Users from Supabase
+  const [users, setUsers] = useState<User[]>([]);
+
+  // Fetch users from Supabase
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+      const fetchedUsers = await UserService.getAllUsers();
+      setUsers(fetchedUsers);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load users');
+      console.error('Error loading users:', err);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   // Mock pending verified counter requests
   const [verifiedCounterRequests] = useState<VerifiedCounterRequest[]>([
@@ -160,13 +122,27 @@ export default function UserManagementPage() {
                 {showAddUserModal && (
                   <div className="mb-8">
                     <AddUserForm 
-                      onClose={() => setShowAddUserModal(false)}
-                      onSave={async (userData: UserFormData) => {
-                        // TODO: Add user logic - save to backend
-                        console.log('Add user:', userData);
-                        // Simulate API call
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                      onClose={() => {
                         setShowAddUserModal(false);
+                        loadUsers(); // Refresh users list
+                      }}
+                      onSave={async (userData: UserFormData) => {
+                        try {
+                          await UserService.createUser({
+                            email: userData.email,
+                            name: userData.name,
+                            role: userData.role as User['role'],
+                            shift: userData.shift as User['shift'],
+                            zones: userData.zones,
+                            is_active: userData.isActive,
+                            is_verified_counter: userData.isVerifiedCounter,
+                            password: userData.password
+                          });
+                          setShowAddUserModal(false);
+                          await loadUsers(); // Refresh users list
+                        } catch (err: any) {
+                          throw new Error(err.message || 'Failed to create user');
+                        }
                       }}
                     />
                   </div>
@@ -176,31 +152,120 @@ export default function UserManagementPage() {
                 {selectedUser && (
                   <div className="mb-8">
                     <EditUserForm
-                      user={selectedUser}
-                      onClose={() => setSelectedUser(null)}
-                      onSave={async (userData) => {
-                        // TODO: Update user logic - save to backend
-                        console.log('Update user:', userData);
-                        // Simulate API call
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                      user={{
+                        id: selectedUser.id,
+                        name: selectedUser.name,
+                        email: selectedUser.email,
+                        role: selectedUser.role,
+                        shift: selectedUser.shift,
+                        zones: selectedUser.zones,
+                        isActive: selectedUser.is_active,
+                        isVerifiedCounter: selectedUser.is_verified_counter
+                      }}
+                      onClose={() => {
                         setSelectedUser(null);
+                        loadUsers(); // Refresh users list
+                      }}
+                      onSave={async (userData) => {
+                        try {
+                          await UserService.updateUser(selectedUser.id, {
+                            name: userData.name,
+                            role: userData.role as User['role'],
+                            shift: userData.shift as User['shift'],
+                            zones: userData.zones,
+                            is_active: userData.isActive,
+                            is_verified_counter: userData.isVerifiedCounter
+                          });
+                          setSelectedUser(null);
+                          await loadUsers(); // Refresh users list
+                        } catch (err: any) {
+                          throw new Error(err.message || 'Failed to update user');
+                        }
                       }}
                     />
                   </div>
                 )}
 
                 {/* User Management Tab - Always visible */}
-                <UserManagementTab 
-                  users={users} 
-                  onAddUser={() => {
-                    setSelectedUser(null); // Close edit form if open
-                    setShowAddUserModal(true);
-                  }}
-                  onEditUser={(user) => {
-                    setShowAddUserModal(false); // Close add form if open
-                    setSelectedUser(user);
-                  }}
-                />
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <svg className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                        <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
+                      </svg>
+                      <p className="text-gray-600">Loading users...</p>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">{error}</p>
+                    <button
+                      onClick={loadUsers}
+                      className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : (
+                  <UserManagementTab 
+                    users={users.map(u => ({
+                      id: u.id,
+                      name: u.name,
+                      email: u.email,
+                      role: u.role,
+                      isVerifiedCounter: u.is_verified_counter,
+                      isActive: u.is_active,
+                      shift: u.shift,
+                      zones: u.zones,
+                      lastLogin: '', // TODO: Add last login tracking
+                      createdAt: u.created_at || ''
+                    }))} 
+                    onAddUser={() => {
+                      setSelectedUser(null); // Close edit form if open
+                      setShowAddUserModal(true);
+                    }}
+                    onEditUser={(user) => {
+                      setShowAddUserModal(false); // Close add form if open
+                      // Find the full user object from Supabase
+                      const fullUser = users.find(u => u.id === user.id);
+                      if (fullUser) {
+                        setSelectedUser(fullUser);
+                      }
+                    }}
+                    onToggleActive={async (user) => {
+                      // Confirm action
+                      const action = user.isActive ? 'deactivate' : 'activate';
+                      const confirmed = window.confirm(
+                        `Are you sure you want to ${action} ${user.name} (${user.email})?`
+                      );
+                      
+                      if (!confirmed) return;
+
+                      try {
+                        setError(''); // Clear any previous errors
+                        setTogglingUserId(user.id); // Show loading state
+                        
+                        if (user.isActive) {
+                          await UserService.deactivateUser(user.id);
+                          console.log('✅ User deactivated:', user.email);
+                        } else {
+                          await UserService.activateUser(user.id);
+                          console.log('✅ User activated:', user.email);
+                        }
+                        
+                        // Reload users to show updated status
+                        await loadUsers();
+                      } catch (err: any) {
+                        console.error('❌ Error toggling user status:', err);
+                        setError(err.message || `Failed to ${action} user`);
+                      } finally {
+                        setTogglingUserId(null); // Clear loading state
+                      }
+                    }}
+                    togglingUserId={togglingUserId}
+                  />
+                )}
               </>
             )}
             {activeTab === 'roles' && (
@@ -208,7 +273,18 @@ export default function UserManagementPage() {
             )}
             {activeTab === 'verified' && (
               <VerifiedCounterTab 
-                users={users}
+                users={users.map(u => ({
+                  id: u.id,
+                  name: u.name,
+                  email: u.email,
+                  role: u.role,
+                  isVerifiedCounter: u.is_verified_counter,
+                  isActive: u.is_active,
+                  shift: u.shift,
+                  zones: u.zones,
+                  lastLogin: '', // TODO: Add last login tracking
+                  createdAt: u.created_at || ''
+                }))}
                 requests={verifiedCounterRequests}
               />
             )}
@@ -224,12 +300,27 @@ export default function UserManagementPage() {
 // ============================================================================
 
 interface UserManagementTabProps {
-  users: User[];
+  users: UserDisplay[];
   onAddUser: () => void;
-  onEditUser: (user: User) => void;
+  onEditUser: (user: UserDisplay) => void;
+  onToggleActive?: (user: UserDisplay) => void;
+  togglingUserId?: string | null;
 }
 
-function UserManagementTab({ users, onAddUser, onEditUser }: UserManagementTabProps) {
+interface UserDisplay {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isVerifiedCounter: boolean;
+  isActive: boolean;
+  shift: string;
+  zones: string[];
+  lastLogin: string;
+  createdAt: string;
+}
+
+function UserManagementTab({ users, onAddUser, onEditUser, onToggleActive, togglingUserId }: UserManagementTabProps) {
   return (
     <div className="space-y-6">
       {/* Actions Header */}
@@ -333,10 +424,24 @@ function UserManagementTab({ users, onAddUser, onEditUser }: UserManagementTabPr
                     >
                       Edit
                     </button>
-                    <button className={`${
-                      user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                    }`}>
-                      {user.isActive ? 'Deactivate' : 'Activate'}
+                    <button 
+                      onClick={() => onToggleActive?.(user)}
+                      disabled={togglingUserId === user.id}
+                      className={`${
+                        user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {togglingUserId === user.id ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
+                          </svg>
+                          {user.isActive ? 'Deactivating...' : 'Activating...'}
+                        </span>
+                      ) : (
+                        user.isActive ? 'Deactivate' : 'Activate'
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -442,7 +547,7 @@ function RolePermissionsTab() {
 // ============================================================================
 
 interface VerifiedCounterTabProps {
-  users: User[];
+  users: UserDisplay[];
   requests: VerifiedCounterRequest[];
 }
 
@@ -628,18 +733,6 @@ function VerifiedCounterTab({ users, requests }: VerifiedCounterTabProps) {
 // TYPES AND UTILITY FUNCTIONS
 // ============================================================================
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  isVerifiedCounter: boolean;
-  isActive: boolean;
-  shift: string;
-  zones: string[];
-  lastLogin: string;
-  createdAt: string;
-}
 
 interface VerifiedCounterRequest {
   id: string;

@@ -267,17 +267,18 @@ function UserDropdown({ userEmail, userRole, onClose }: UserDropdownProps) {
 
   const handleSignOut = async () => {
     try {
-      // Import AuthService dynamically to avoid circular dependencies
-      const { AuthService } = await import('@/lib/auth/authService');
-      await AuthService.signOut();
+      // Sign out from Supabase
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      await supabase.auth.signOut();
       
       // Redirect to login page
-      router.push('/auth/login');
+      router.push('/login');
       onClose();
     } catch (error) {
       console.error('Sign out error:', error);
       // Still redirect even if sign out fails
-      router.push('/auth/login');
+      router.push('/login');
       onClose();
     }
   };

@@ -17,6 +17,7 @@ interface AddUserFormProps {
 export interface UserFormData {
   name: string;
   email: string;
+  password: string;
   role: string;
   shift: string;
   zones: string[];
@@ -55,6 +56,7 @@ export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
     email: '',
+    password: '',
     role: 'Operator',
     shift: 'Day',
     zones: [],
@@ -73,6 +75,12 @@ export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     if (!formData.role) {
@@ -202,6 +210,30 @@ export function AddUserForm({ onClose, onSave }: AddUserFormProps) {
                   {errors.email && (
                     <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => {
+                      setFormData({...formData, password: e.target.value});
+                      if (errors.password) setErrors({...errors, password: ''});
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors text-gray-900 placeholder:text-gray-400 ${
+                      errors.password 
+                        ? 'border-red-300 focus:ring-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                    placeholder="Minimum 8 characters"
+                  />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">User will be required to change password on first login</p>
                 </div>
               </div>
             </div>

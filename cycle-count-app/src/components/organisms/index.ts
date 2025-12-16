@@ -3,5 +3,5 @@
 // ============================================================================
 // Export all organism components from a single entry point
 
-export { LoginForm } from './LoginForm';
+// LoginForm removed - using Supabase authentication
 export { LoginBranding } from './LoginBranding';
