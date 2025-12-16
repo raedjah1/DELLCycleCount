@@ -116,31 +116,33 @@ export default function OperatorDashboardPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Your Assignments</h1>
-              <p className="text-gray-600 mt-1">
+        <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Your Assignments</h1>
+              <p className="text-gray-600 mt-1 text-sm">
                 {activeJournals.length} active journal{activeJournals.length !== 1 ? 's' : ''}
               </p>
             </div>
             
-            <StatusSelector 
-              status={operatorStatus}
-              onStatusChange={setOperatorStatus}
-            />
+            <div className="flex-shrink-0">
+              <StatusSelector 
+                status={operatorStatus}
+                onStatusChange={setOperatorStatus}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
         {/* Quick Stats */}
-        <StatsGrid stats={stats} className="mb-8" />
+        <StatsGrid stats={stats} className="mb-6" />
 
         {/* Active Journals */}
         {activeJournals.length > 0 ? (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Active Journals</h2>
+          <div className="mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Active Journals</h2>
             <div className="space-y-4">
               {activeJournals.map((journal) => (
                 <JournalCard
