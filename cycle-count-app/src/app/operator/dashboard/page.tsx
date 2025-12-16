@@ -123,15 +123,15 @@ export default function OperatorDashboardPage() {
               <p className="text-gray-600 mt-1 text-sm">
                 {activeJournals.length} active journal{activeJournals.length !== 1 ? 's' : ''}
               </p>
-            </div>
-            
+      </div>
+
             <div className="flex-shrink-0">
               <StatusSelector 
                 status={operatorStatus}
                 onStatusChange={setOperatorStatus}
-              />
-            </div>
-          </div>
+          />
+        </div>
+      </div>
         </div>
       </div>
 
@@ -150,9 +150,9 @@ export default function OperatorDashboardPage() {
                   journal={journal}
                   onOpenJournal={handleOpenJournal}
                 />
-              ))}
-            </div>
+            ))}
           </div>
+        </div>
         ) : (
           <EmptyState
             title="No Assignments Yet"

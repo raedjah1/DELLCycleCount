@@ -1,19 +1,52 @@
 // ============================================================================
-// ONHAND IMPORT SCREEN (RAW GOODS) - Excel Upload for Raw Goods Inventory
+// RAW GOODS MANAGEMENT - Master Data with Excel Import
 // ============================================================================
-// Admin screen for importing OnHand snapshots for raw goods (Section 10.1)
+// Admin screen for managing raw goods and bulk Excel imports
 
 'use client';
 
-import { useState } from 'react';
-import { parseOnHandExcel, validateExcelFile, OnHandImportResult } from '@/lib/utils/excelImport';
-import { parseLocationCode } from '@/lib/utils/locationParser';
+import { useState, useEffect } from 'react';
+import { parseRawGoodsExcel, validateExcelFile, RawGoodsImportResult } from '@/lib/utils/excelImport';
+import { RawGoodsService, RawGoods } from '@/lib/services/rawGoodsService';
+import {
+  RawGoodsManagementTab,
+  RawGoodsImportTab
+} from './components';
 
-export default function RawGoodsOnHandImportPage() {
+export default function RawGoodsPage() {
+  const [activeTab, setActiveTab] = useState<'manage' | 'import'>('manage');
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [importResult, setImportResult] = useState<OnHandImportResult | null>(null);
+  const [importResult, setImportResult] = useState<RawGoodsImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Real raw goods from Supabase
+  const [rawGoods, setRawGoods] = useState<RawGoods[]>([]);
+  const [isLoadingRawGoods, setIsLoadingRawGoods] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Fetch raw goods from Supabase
+  useEffect(() => {
+    fetchRawGoods();
+  }, [currentPage, searchQuery]);
+
+  const fetchRawGoods = async () => {
+    setIsLoadingRawGoods(true);
+    try {
+      const result = await RawGoodsService.getPaginatedRawGoods(currentPage, 20, searchQuery);
+      setRawGoods(result.data);
+      setTotalPages(result.totalPages);
+      setTotalCount(result.total);
+    } catch (err: any) {
+      setError(`Failed to load raw goods: ${err.message}`);
+    } finally {
+      setIsLoadingRawGoods(false);
+    }
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -38,12 +71,9 @@ export default function RawGoodsOnHandImportPage() {
     setError(null);
 
     try {
-      const result = await parseOnHandExcel(file);
+      // Parse and validate Excel (don't insert yet - user clicks "Confirm Import")
+      const result = await parseRawGoodsExcel(file);
       setImportResult(result);
-      
-      // TODO: Send valid rows to Supabase with raw_goods flag
-      console.log('✅ Raw Goods Import Results:', result);
-      
     } catch (err: any) {
       setError(err.message || 'Import failed');
     } finally {
@@ -51,291 +81,132 @@ export default function RawGoodsOnHandImportPage() {
     }
   };
 
-  const clearImport = () => {
+  const resetImport = () => {
     setFile(null);
     setImportResult(null);
     setError(null);
+    setSuccessMessage(null);
+  };
+
+  const handleDeleteRawGoods = async (id: string) => {
+    try {
+      await RawGoodsService.deleteRawGoods(id);
+      setSuccessMessage('Raw goods record deleted successfully!');
+      await fetchRawGoods();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setError(`Failed to delete raw goods: ${err.message}`);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importResult || importResult.validRows.length === 0) return;
+
+    setIsUploading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const insertResult = await RawGoodsService.insertRawGoods(importResult.validRows);
+      
+      if (insertResult.errors.length > 0) {
+        // Partial success - show both success and errors
+        setSuccessMessage(`Successfully imported ${insertResult.inserted} raw goods records. ${insertResult.errors.length} batch errors occurred.`);
+        console.error('Import errors:', insertResult.errors);
+        setError(`Some errors occurred: ${insertResult.errors.slice(0, 3).join(', ')}${insertResult.errors.length > 3 ? '...' : ''}`);
+      } else {
+        // Full success - show message then refresh raw goods
+        setSuccessMessage(`Successfully imported ${insertResult.inserted} raw goods record${insertResult.inserted !== 1 ? 's' : ''}!`);
+        // Refresh raw goods list after import
+        await fetchRawGoods();
+        // Switch to manage tab to see the new records
+        setTimeout(() => {
+          setActiveTab('manage');
+        }, 1500);
+      }
+    } catch (err: any) {
+      console.error('Import error:', err);
+      setError(err.message || 'Import failed');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-3 sm:p-4 lg:p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Upload Section */}
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Raw Goods Inventory Import</h2>
-            <p className="text-sm text-gray-600">Import current inventory snapshots for raw goods from Excel</p>
-          </div>
-          
-          {/* Required Format */}
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 sm:p-4 mb-4 sm:mb-6 rounded">
-            <h3 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">Required Excel Format</h3>
-            <div className="text-xs sm:text-sm text-blue-700">
-              <p className="mb-2"><strong>Required headers (exact):</strong></p>
-              <div className="bg-blue-100 p-2 sm:p-3 rounded font-mono text-xs overflow-x-auto">
-                AsOfTimestamp | LocationCode | PartNumber | ExpectedQty
-              </div>
-              <p className="mt-2"><strong>Example:</strong></p>
-              <div className="bg-blue-100 p-2 sm:p-3 rounded font-mono text-xs mt-1 overflow-x-auto">
-                2024-12-15 08:00:00 | Reimage.ARB.AB.01.01A | RAW-001 | 25
-              </div>
-            </div>
-          </div>
-
-          {/* File Upload */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
-            {!file ? (
-              <div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto bg-gray-100 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6">
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 mb-4 sm:mb-6 lg:mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto">
+              <button
+                onClick={() => setActiveTab('manage')}
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === 'manage'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
+                  Manage Raw Goods
                 </div>
-                <p className="text-base sm:text-lg font-medium text-gray-900 mb-1 sm:mb-2">Upload Excel File</p>
-                <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Select .xls, .xlsx, or .csv file (max 10MB)</p>
-                <label className="inline-flex items-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer text-sm sm:text-base transition-colors">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              </button>
+              <button
+                onClick={() => setActiveTab('import')}
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === 'import'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  Choose File
-                  <input 
-                    type="file" 
-                    accept=".xls,.xlsx,.csv" 
-                    onChange={handleFileSelect}
-                    className="hidden" 
-                  />
-                </label>
-              </div>
-            ) : (
-              <div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto bg-green-100 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  Import Raw Goods
                 </div>
-                <p className="text-base sm:text-lg font-medium text-gray-900 mb-1">{file.name}</p>
-                <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">{(file.size / 1024).toFixed(1)} KB</p>
-                <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3">
-                  <button 
-                    onClick={handleImport}
-                    disabled={isUploading}
-                    className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center text-sm sm:text-base transition-colors"
-                  >
-                    {isUploading ? (
-                      <>
-                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        Import Data
-                      </>
-                    )}
-                  </button>
-                  <button 
-                    onClick={clearImport}
-                    className="w-full sm:w-auto px-4 py-2 text-gray-600 hover:text-gray-800 text-sm sm:text-base transition-colors"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
+              </button>
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-4 sm:p-6 lg:p-8">
+            {activeTab === 'manage' && (
+              <RawGoodsManagementTab
+                rawGoods={rawGoods}
+                isLoading={isLoadingRawGoods}
+                onDelete={handleDeleteRawGoods}
+                onRefresh={fetchRawGoods}
+                onSearch={(query) => {
+                  setSearchQuery(query);
+                  setCurrentPage(1);
+                }}
+                onPageChange={setCurrentPage}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalCount={totalCount}
+              />
+            )}
+
+            {activeTab === 'import' && (
+              <RawGoodsImportTab
+                file={file}
+                isUploading={isUploading}
+                importResult={importResult}
+                error={error}
+                successMessage={successMessage}
+                onFileSelect={handleFileSelect}
+                onImport={handleImport}
+                onReset={resetImport}
+                onConfirmImport={handleConfirmImport}
+              />
             )}
           </div>
         </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-3 sm:p-4 mb-4 sm:mb-6 rounded">
-            <div className="flex">
-              <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Import Error</h3>
-                <p className="mt-1 text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Import Results */}
-        {importResult && (
-          <ImportResults result={importResult} />
-        )}
       </div>
     </div>
   );
 }
-
-// ============================================================================
-// IMPORT RESULTS COMPONENT
-// ============================================================================
-
-interface ImportResultsProps {
-  result: OnHandImportResult;
-}
-
-function ImportResults({ result }: ImportResultsProps) {
-  const [activeTab, setActiveTab] = useState<'summary' | 'valid' | 'invalid'>('summary');
-
-  return (
-    <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      {/* Results Header */}
-      <div className="p-4 sm:p-6 border-b border-gray-200">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Import Results</h2>
-        <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-3 sm:mt-4">
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span className="text-xs sm:text-sm font-medium">{result.summary.validRows} Valid</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-            <span className="text-xs sm:text-sm font-medium">{result.summary.invalidRows} Invalid</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-            <span className="text-xs sm:text-sm font-medium">{result.summary.dataQualityIssues} Data Quality Issues</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200 overflow-x-auto">
-        <nav className="flex min-w-max">
-          {[
-            { id: 'summary', label: 'Summary', count: result.summary.totalRows },
-            { id: 'valid', label: 'Valid Records', count: result.summary.validRows },
-            { id: 'invalid', label: 'Invalid Records', count: result.summary.invalidRows }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      <div className="p-4 sm:p-6">
-        {activeTab === 'summary' && (
-          <SummaryTab result={result} />
-        )}
-        {activeTab === 'valid' && (
-          <ValidRecordsTab records={result.validRows} />
-        )}
-        {activeTab === 'invalid' && (
-          <InvalidRecordsTab records={result.invalidRows} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Summary Tab Component
-function SummaryTab({ result }: { result: OnHandImportResult }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-      <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
-        <h3 className="font-medium text-green-900 text-sm sm:text-base">Valid Records</h3>
-        <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">{result.summary.validRows}</p>
-        <p className="text-xs sm:text-sm text-green-700 mt-1">Ready to import</p>
-      </div>
-      <div className="bg-red-50 p-3 sm:p-4 rounded-lg">
-        <h3 className="font-medium text-red-900 text-sm sm:text-base">Invalid Records</h3>
-        <p className="text-xl sm:text-2xl font-bold text-red-600 mt-1">{result.summary.invalidRows}</p>
-        <p className="text-xs sm:text-sm text-red-700 mt-1">Need correction</p>
-      </div>
-      <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg">
-        <h3 className="font-medium text-yellow-900 text-sm sm:text-base">Data Quality Issues</h3>
-        <p className="text-xl sm:text-2xl font-bold text-yellow-600 mt-1">{result.summary.dataQualityIssues}</p>
-        <p className="text-xs sm:text-sm text-yellow-700 mt-1">Location format issues</p>
-      </div>
-    </div>
-  );
-}
-
-// Valid Records Tab
-function ValidRecordsTab({ records }: { records: any[] }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Number</th>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Qty</th>
-            <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">As Of</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {records.slice(0, 100).map((record, index) => (
-            <tr key={index} className="hover:bg-gray-50">
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                {record.LocationCode}
-              </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                {record.PartNumber}
-              </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                {record.ExpectedQty}
-              </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                {new Date(record.AsOfTimestamp).toLocaleString()}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {records.length > 100 && (
-        <p className="text-center text-gray-500 py-3 sm:py-4 text-xs sm:text-sm">
-          Showing first 100 records of {records.length} total
-        </p>
-      )}
-    </div>
-  );
-}
-
-// Invalid Records Tab
-function InvalidRecordsTab({ records }: { records: any[] }) {
-  return (
-    <div className="space-y-3 sm:space-y-4">
-      {records.map((record, index) => (
-        <div key={index} className="border border-red-200 rounded-lg p-3 sm:p-4 bg-red-50">
-          <div className="flex justify-between items-start mb-2">
-            <h4 className="font-medium text-red-900 text-sm sm:text-base">Row {record.rowNumber}</h4>
-            <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
-              {record.errors.length} error{record.errors.length > 1 ? 's' : ''}
-            </span>
-          </div>
-          <div className="mb-2 sm:mb-3">
-            <strong className="text-xs sm:text-sm">Errors:</strong>
-            <ul className="list-disc list-inside text-xs sm:text-sm text-red-700 mt-1">
-              {record.errors.map((error: string, errorIndex: number) => (
-                <li key={errorIndex}>{error}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="text-xs sm:text-sm text-gray-600 break-all">
-            <strong>Raw data:</strong> {JSON.stringify(record.row)}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-

@@ -91,7 +91,7 @@ export default function TransactionImportPage() {
                   </svg>
                 </div>
                 <p className="text-base sm:text-lg font-medium text-gray-900 mb-1 sm:mb-2">Upload Transaction File</p>
-                <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Select .xls, .xlsx, or .csv file (max 10MB)</p>
+                <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Select .xls, .xlsx, or .csv file (max 20MB)</p>
                 <label className="inline-flex items-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer text-sm sm:text-base transition-colors">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />

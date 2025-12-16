@@ -365,10 +365,10 @@ export function validateExcelFile(file: File): { isValid: boolean; error?: strin
     return { isValid: false, error: 'Please select an Excel file (.xls, .xlsx) or CSV file (.csv)' };
   }
 
-  // Check file size (max 10MB)
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  // Check file size (max 20MB)
+  const maxSize = 20 * 1024 * 1024; // 20MB
   if (file.size > maxSize) {
-    return { isValid: false, error: 'File size must be less than 10MB' };
+    return { isValid: false, error: 'File size must be less than 20MB' };
   }
 
   return { isValid: true };
